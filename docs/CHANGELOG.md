@@ -702,6 +702,42 @@ Notes
 
 ---
 
+## v1.14.1
+
+Date
+
+2026-07-07
+
+Status
+
+Fix — synthetic dataset now writes real (decodable) PNG images
+
+Fixed
+
+- `generate_synthetic_dataset` previously wrote fixed placeholder bytes as image
+  files. That was invisible in torch-free environments (reference models never
+  decode pixels) but broke the real torch training path where images are decoded
+  (e.g., on Colab/Kaggle with PyTorch installed): "Failed to decode image".
+- Images and masks are now encoded as valid 8-bit RGB PNGs via a tiny standard-
+  library PNG writer (no Pillow/OpenCV/numpy dependency): small solid-colour images
+  (unique per file) and a white-square-on-black mask, decodable by OpenCV/Pillow.
+
+Files Modified
+
+- `src/adaptivehb/dataset/synthetic.py`
+
+Tests
+
+- 244 passed, 4 skipped (unchanged). Verified the generated files carry a valid PNG
+  signature and decode to a (32, 32, 3) array via the framework's image decoder.
+
+Notes
+
+- This makes the synthetic smoke notebook run identically in torch-free and
+  torch-enabled environments (Colab/Kaggle).
+
+---
+
 ## v1.14.0
 
 Date
