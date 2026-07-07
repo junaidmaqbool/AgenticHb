@@ -1,0 +1,31 @@
+# ============================================================
+# requirements.txt — AdaptiveHb runtime + dev dependencies
+# ------------------------------------------------------------
+# Lower bounds are declared here for a reproducible baseline.
+# Exact, fully-pinned versions should be captured with
+# `pip freeze > requirements.lock.txt` inside the real training
+# environment once hardware (CUDA/torch) is finalized.
+# Phase 1 code (config, logging, exceptions) depends ONLY on
+# PyYAML; the ML stack is listed for later phases.
+# ============================================================
+
+# --- Core framework (Phase 1) ---
+PyYAML>=6.0
+
+# --- Scientific / ML stack (Phases 3+) ---
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+matplotlib>=3.8
+opencv-python>=4.9
+albumentations>=1.4
+torch>=2.2
+torchvision>=0.17
+torchmetrics>=1.3
+
+# --- Development / quality (all phases) ---
+pytest>=8.0
+pytest-cov>=4.1
+ruff>=0.4
+black>=24.3
+mypy>=1.9

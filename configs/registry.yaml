@@ -1,0 +1,24 @@
+# ============================================================
+# registry.yaml — model registry configuration
+# Consumed later by RegistryManager (Phase 2). The registry stores
+# references (metadata + checkpoint paths), never model weights.
+# ============================================================
+
+registry:
+  backend: json              # json | sqlite (Decision 014: JSON for research use)
+  root: registry
+  auto_register: true
+  auto_version: true
+  auto_resume: true
+  load_models_via_registry_only: true
+
+  categories: [segmentation, prediction, decision_module, fusion, confidence]
+
+  backup:
+    enabled: true
+    on_register: true
+
+  selection:
+    default_status: [stable, production]
+    default_metric: val_mae
+    default_direction: min    # lower is better for MAE

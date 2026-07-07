@@ -1,0 +1,46 @@
+# ============================================================
+# agents.yaml — adaptive decision framework configuration
+# Consumed later by AgentManager (Phase 7). Fusion and confidence
+# are agents within the adaptive framework, not separate managers
+# (Decision 012). Agents may be enabled/disabled without code changes.
+# ============================================================
+
+agents:
+  # --- Perception layer ---
+  quality_assessment:
+    enabled: true
+    policy: deterministic     # deterministic | learned
+    thresholds:
+      min_quality: 0.5
+
+  roi_verification:
+    enabled: true
+    policy: deterministic
+    thresholds:
+      min_iou: 0.6
+
+  # --- Decision layer ---
+  segmentation_selection:
+    enabled: true
+    policy: deterministic
+
+  tissue_selection:
+    enabled: true
+    policy: deterministic
+
+  prediction_routing:
+    enabled: true
+    policy: deterministic
+
+  # --- Clinical output layer ---
+  fusion:
+    enabled: true
+    policy: deterministic      # weighted | stacking | attention (future)
+    method: confidence_weighted
+
+  confidence:
+    enabled: true
+    policy: deterministic
+
+  workflow_controller:
+    log_decisions: true        # every adaptive decision is logged

@@ -1,0 +1,36 @@
+# ============================================================
+# project.yaml — global project + hardware + path settings
+# Consumed by: ProjectConfig (typed) via ConfigLoader.
+# ============================================================
+
+project:
+  name: AdaptiveHb
+  experiment_name: default_experiment
+  version: 0.2.0
+  seed: 42
+  deterministic: true
+
+hardware:
+  device: auto          # auto | cpu | cuda
+  num_workers: 4
+  mixed_precision: true
+
+runtime:
+  resume: true
+  checkpoint_frequency: 1   # save a checkpoint every N epochs
+  tensorboard: true
+
+# All paths are relative to the repository root unless absolute.
+# Never hardcode these in source code — always read from here.
+paths:
+  output_root: outputs
+  checkpoints: checkpoints
+  weights: weights
+  registry: registry
+  logs: logs
+  results: results
+  figures: figures
+  reports: reports
+  tensorboard: tensorboard
+  cache: cache
+  experiments: experiments

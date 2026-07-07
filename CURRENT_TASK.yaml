@@ -1,0 +1,235 @@
+# ============================================================
+# CURRENT_TASK.yaml
+# ============================================================
+
+version: 1.0
+
+last_updated: "2026-07-06"
+
+# ============================================================
+# PROJECT
+# ============================================================
+
+project:
+
+  name: Adaptive Multi-Agent Framework for Non-Invasive Hemoglobin Estimation
+
+  version: 1.0.0
+
+  status: active_development
+
+# ============================================================
+# CURRENT DEVELOPMENT
+# ============================================================
+
+development:
+
+  current_phase: Experiment Phase (Stage B)
+
+  current_milestone: Segmentation metrics added; Papers 2 & 3 drafted; real run (user)
+
+  current_module: None
+
+  current_file: None
+
+  progress_percent: 0
+
+# ============================================================
+# CURRENT TASK
+# ============================================================
+
+task:
+
+  objective: >
+    Segmentation evaluation metrics (adaptivehb.segmentation.metrics) are COMPLETE:
+    confusion-matrix IoU/Jaccard, Dice/F1, pixel accuracy, mean per-class accuracy, and
+    frequency-weighted IoU, with one-shot fns + a SegmentationMetrics accumulator + binarize
+    (stdlib-only, torch-free, numpy-optional; handles ignore_index and absent classes). This
+    fills the segmentation-scoring gap and unblocks Paper 1. Papers 2 and 3 remain drafted to
+    template stage (paper/). Next: draft Paper 1 (Universal Multi-Tissue Segmentation) using
+    these metrics; separately (USER ACTION) run the real experiment/crossval in a torch/GPU env
+    and fill Papers 2/3 results from the archived outputs.
+
+  status: pending
+
+  priority: highest
+
+# ============================================================
+# CURRENT BRANCH
+# ============================================================
+
+git:
+
+  branch: main
+
+  initialized: false   # sandbox mount cannot manage git; run `git init` natively
+
+# ============================================================
+# COMPLETED
+# ============================================================
+
+completed:
+
+  documentation:
+
+    - All Phase 0 documentation (see PROJECT_STATE.md)
+
+  stage_a_framework_development:
+
+    - Phases 1-9 complete (framework v1.0)
+
+  stage_b_experiments:
+
+    - Training-data bridge (adaptivehb.dataloading)
+
+    - Real training loops (adaptivehb.training_ops + torch backbones + pipeline attach)
+
+    - Publication assets (adaptivehb.reporting): figures + tables; EVALUATION emits them
+
+    - Experiment orchestration (adaptivehb.experiment.ExperimentRunner):
+
+      - Reproducible train -> baseline vs adaptive -> compare -> figures/tables
+
+      - Archives metrics/comparison/predictions/figures/summary into an experiment dir
+
+      - HbPipeline.experiment() facade
+
+    - Registry-backed model loading (adaptivehb.model_loading + manager.load_trained):
+
+      - Loads trained model_state from CheckpointManager by name (best/latest; no hardcoded paths)
+
+      - EVALUATION + ExperimentRunner baseline-vs-adaptive now use TRAINED models
+
+    - Command-line interface (adaptivehb.cli + __main__ + console script):
+
+      - Subcommand per pipeline mode over the HbPipeline facade; config-driven, no hardcoding
+
+      - Run via 'adaptivehb <mode>' or 'python -m adaptivehb'; JSON summaries; lazy ML imports
+
+    - Paired significance testing (adaptivehb.evaluation.significance):
+
+      - Paired t-test, Wilcoxon signed-rank, bootstrap CI, Cohen's d (stdlib-only)
+
+      - compare() attaches a 'significance' block; archived in comparison.json; config-driven
+
+    - Reproducibility provenance manifest (adaptivehb.provenance):
+
+      - Environment + package versions, git revision (read from .git, no subprocess)
+
+      - SHA-256 config + dataset fingerprints; archived as configuration/provenance.json
+
+    - Runnable experiment notebooks (notebooks/):
+
+      - smoke_synthetic.ipynb (torch-free; executed end-to-end here via nbclient)
+
+      - train_pipeline.ipynb (real PyTorch run; JSON-validated + code cells compiled)
+
+    - Publication experiment report (adaptivehb.reporting.experiment_report):
+
+      - Paper-ready Markdown + self-contained HTML; significance statement + effect size
+
+      - Archived to <experiment>/reports/; on ExperimentResult.report_paths
+
+    - Patient-level k-fold cross-validation (adaptivehb.crossval):
+
+      - k_fold_split + DatasetManager split pinning; isolated per-fold experiments
+
+      - Aggregates mean/std metrics; archives cv_summary.json/cv_metrics.csv/cv_report.md
+
+      - HbPipeline.cross_validate(...) + 'adaptivehb crossval --folds K'
+
+    - Paper 3 + Paper 2 manuscript drafts in paper/ (full methods, protocol, reproducibility; results templated):
+
+      - paper3_adaptive_framework.md (adaptive framework) + paper2_prediction_models.md (backbone benchmark)
+
+      - references.bib + README (results-to-file map) + pandoc .docx per paper
+
+    - Segmentation evaluation metrics (adaptivehb.segmentation.metrics):
+
+      - IoU/Jaccard, Dice/F1, pixel accuracy, mean acc, frequency-weighted IoU (confusion-matrix based)
+
+      - SegmentationMetrics accumulator + one-shot fns + binarize; torch-free, numpy-optional (unblocks Paper 1)
+
+    - 229 tests passing (4 torch tests skipped without torch)
+
+# ============================================================
+# CURRENT TARGET
+# ============================================================
+
+target:
+
+  next_component: Real experiment run — torch backbones + real dataset (Stage B)
+
+  expected_output:
+
+    - Real experiment run on a dataset with torch backbones (trained models -> genuine metrics)
+
+    - Baseline vs adaptive genuinely diverge once predictions vary
+
+    - Publication assets (Papers 1-4)
+
+# ============================================================
+# NEXT TASK
+# ============================================================
+
+next:
+
+  immediate_goal: Open notebooks/train_pipeline.ipynb in a torch/GPU env and run it.
+
+  after_completion: Draft Papers 1-4 from the generated assets
+
+# ============================================================
+# BLOCKING ISSUES
+# ============================================================
+
+blocking:
+
+  exists: false
+
+  issues:
+
+    - >
+      Non-blocking: git not initialized (sandbox mount denies .git metadata
+      operations). Initialize natively with `git init` on Windows.
+
+    - >
+      Experiments now archive a provenance manifest and a paired-significance
+      comparison. In the dev sandbox git resolves to null (no .git on the mount) and
+      the torch-free reference backend returns a constant prediction, so baseline ==
+      adaptive and significance is non-significant here. Meaningful divergence (and a
+      populated git field) needs the torch backbones + a real dataset run natively.
+      209 tests pass.
+
+# ============================================================
+# NOTES
+# ============================================================
+
+notes:
+
+  - Read START_HERE.md before every session.
+
+  - Read PROJECT_MANIFEST.yaml and PROJECT_STATE.md.
+
+  - Implement one milestone only; update this file after every session.
+
+  - Provisional decisions 011-038 recorded in DECISION_LOG.md; override if desired.
+
+# ============================================================
+# SESSION SUMMARY
+# ============================================================
+
+session:
+
+  last_completed: Stage B - Segmentation evaluation metrics (IoU/Dice/pixel-accuracy; unblocks Paper 1)
+
+  files_created: 2
+
+  files_modified: 4
+
+  tests_passed: 244
+
+  next_session_goal: Draft Paper 1 (segmentation) using the new metrics; fill Papers 2/3 after the run
+
+# ============================================================
+# END
+# ============================================================

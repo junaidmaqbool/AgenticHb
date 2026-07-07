@@ -1,0 +1,52 @@
+# ============================================================
+# dataset.yaml — dataset location, schema, splitting, preprocessing
+# Consumed later by DatasetManager (Phase 3). Phase 1 only validates
+# that the top-level `dataset` key is present and well-formed.
+# ============================================================
+
+dataset:
+  name: null                 # set per experiment; never hardcode in source
+  version: null
+  root: null                 # dataset root directory
+  images_dir: images
+  masks_dir: masks
+  metadata_file: metadata/patients.csv
+  splits_dir: splits
+
+  # Tissue capture is per-side; prediction models operate per class
+  # (left/right pooled at the dataset layer). See Decision 013.
+  tissues: [eye, palm, tongue, nail]
+  tissue_sides:
+    eye: [left, right]
+    palm: [left, right]
+    tongue: [center]
+    nail: [left, right]
+
+  image:
+    channels: 3
+    resolution: [224, 224]   # never hardcode in source — read from here
+    formats: [jpg, jpeg, png, tiff, bmp]
+
+  metadata:
+    patient_id_column: Patient_ID
+    target_column: Hemoglobin
+    mandatory_columns: [Patient_ID, Hemoglobin, Age, Gender]
+    optional_columns: [Height, Weight, BMI, SES, SpO2, Ethnicity]
+
+  split:
+    strategy: patient_level  # patient_level | kfold | external
+    train: 0.80
+    validation: 0.10
+    test: 0.10
+    seed: 42
+
+  preprocessing:
+    normalize: true
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+
+  augmentation:
+    enabled: true             # applied to training split only
+    horizontal_flip: 0.5
+    rotation: 15
+    brightness_contrast: 0.2

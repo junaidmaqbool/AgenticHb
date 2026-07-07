@@ -1,0 +1,356 @@
+# ============================================================
+# PROJECT_MANIFEST.yaml
+# ============================================================
+
+project:
+  name: Adaptive Multi-Agent Framework for Non-Invasive Hemoglobin Estimation
+  short_name: AdaptiveHb
+  version: 1.0.0
+  status: development
+  type: research_framework
+  language: Python
+  python_version: ">=3.11"
+
+author:
+  owner: Junaid
+  project_type: PhD Research
+  domain: Biomedical AI
+  objective: >
+    Develop a modular adaptive multi-agent framework for
+    non-invasive hemoglobin estimation using exposed tissue images.
+
+# ============================================================
+# DEVELOPMENT STATUS
+# ============================================================
+
+development:
+
+  current_phase: Repository Construction
+
+  current_milestone: Initialize Repository
+
+  implementation_status:
+
+    documentation: complete
+
+    repository: pending
+
+    infrastructure: pending
+
+    dataset_manager: pending
+
+    pipeline_manager: pending
+
+    segmentation_framework: pending
+
+    prediction_framework: pending
+
+    adaptive_framework: pending
+
+    evaluation_framework: pending
+
+    deployment_framework: pending
+
+# ============================================================
+# DOCUMENTS
+# ============================================================
+
+documentation:
+
+  start_here: START_HERE.md
+
+  index: docs/PROJECT_INDEX.md
+
+  state: docs/PROJECT_STATE.md
+
+  guide: docs/CLAUDE_DEVELOPMENT_GUIDE.md
+
+  rules: docs/DEVELOPMENT_RULES.md
+
+  charter: docs/PROJECT_CHARTER.md
+
+  pds: docs/PROJECT_DESIGN_SPECIFICATION.md
+
+  roadmap: docs/IMPLEMENTATION_ROADMAP.md
+
+  pipeline: docs/PIPELINE_SPEC.md
+
+  dataset: docs/DATASET_SPEC.md
+
+  agents: docs/AGENT_SPECIFICATION.md
+
+  registry: docs/MODEL_REGISTRY_SPEC.md
+
+  experiments: docs/EXPERIMENT_SPEC.md
+
+# ============================================================
+# REPOSITORY
+# ============================================================
+
+repository:
+
+  src: src/
+
+  configs: configs/
+
+  docs: docs/
+
+  notebooks: notebooks/
+
+  experiments: experiments/
+
+  registry: registry/
+
+  checkpoints: checkpoints/
+
+  logs: logs/
+
+  reports: reports/
+
+  tests: tests/
+
+# ============================================================
+# PIPELINE
+# ============================================================
+
+pipeline:
+
+  public_entry:
+
+    - HbPipeline
+
+  managers:
+
+    - DatasetManager
+
+    - PipelineManager
+
+    - RegistryManager
+
+    - SegmentationManager
+
+    - PredictionManager
+
+    - AgentManager
+
+    - EvaluationManager
+
+    - DeploymentManager
+
+# ============================================================
+# DATASET
+# ============================================================
+
+dataset:
+
+  tissues:
+
+    - left_eye
+
+    - right_eye
+
+    - left_palm
+
+    - right_palm
+
+    - tongue
+
+    - left_nail
+
+    - right_nail
+
+  split:
+
+    train: 0.80
+
+    validation: 0.10
+
+    test: 0.10
+
+  split_strategy: patient_level
+
+# ============================================================
+# SEGMENTATION
+# ============================================================
+
+segmentation:
+
+  supported_models:
+
+    - UNet
+
+    - SegFormer
+
+    - DeepLabV3Plus
+
+  training:
+
+    status: pending
+
+# ============================================================
+# HB PREDICTION
+# ============================================================
+
+prediction:
+
+  tissues:
+
+    eye
+
+    palm
+
+    tongue
+
+    nail
+
+  architectures:
+
+    - EfficientNet
+
+    - ResNet
+
+    - DenseNet
+
+    - VisionTransformer
+
+    - ConvNeXt
+
+# ============================================================
+# ADAPTIVE FRAMEWORK
+# ============================================================
+
+adaptive_framework:
+
+  perception:
+
+    - QualityAssessment
+
+    - ROIVerification
+
+  decision:
+
+    - SegmentationSelection
+
+    - TissueSelection
+
+    - PredictionRouting
+
+  clinical:
+
+    - AdaptiveFusion
+
+    - ConfidenceEstimation
+
+  controller:
+
+    WorkflowController
+
+# ============================================================
+# MODEL REGISTRY
+# ============================================================
+
+registry:
+
+  auto_register: true
+
+  auto_version: true
+
+  auto_resume: true
+
+  load_models_via_registry_only: true
+
+# ============================================================
+# EXPERIMENTS
+# ============================================================
+
+experiments:
+
+  notebook:
+
+    notebooks/train_pipeline.ipynb
+
+  automatic_reports: true
+
+  automatic_figures: true
+
+  automatic_tables: true
+
+  reproducible: true
+
+# ============================================================
+# CODING RULES
+# ============================================================
+
+coding:
+
+  modular: true
+
+  typed: true
+
+  documented: true
+
+  logged: true
+
+  configurable: true
+
+  tested: true
+
+  reusable: true
+
+  hardcoded_paths: false
+
+  duplicate_code: false
+
+# ============================================================
+# SESSION WORKFLOW
+# ============================================================
+
+workflow:
+
+  startup:
+
+    - Read START_HERE.md
+
+    - Read PROJECT_INDEX.md
+
+    - Read PROJECT_STATE.md
+
+    - Read CLAUDE_DEVELOPMENT_GUIDE.md
+
+    - Determine Current Milestone
+
+    - Open Only Required Specifications
+
+  shutdown:
+
+    - Update PROJECT_STATE.md
+
+    - Update CHANGELOG.md
+
+    - Update DECISION_LOG.md
+
+    - Stop
+
+# ============================================================
+# AI RULES
+# ============================================================
+
+assistant:
+
+  implement_one_milestone_only: true
+
+  stop_after_completion: true
+
+  redesign_architecture: false
+
+  rewrite_completed_modules: false
+
+  reuse_existing_code: true
+
+  produce_architectural_review: true
+
+  ask_questions_when_unsure: true
+
+# ============================================================
+# END
+# ============================================================

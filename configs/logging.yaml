@@ -1,0 +1,18 @@
+# ============================================================
+# logging.yaml — logging subsystem configuration
+# Consumed by: LoggingConfig (typed) via ConfigLoader; applied
+# by adaptivehb.logging.setup_logging().
+# ============================================================
+
+logging:
+  level: INFO                     # DEBUG | INFO | WARNING | ERROR | CRITICAL
+  console: true
+  file: true
+  log_dir: logs
+  filename: adaptivehb.log
+  format: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+  datefmt: "%Y-%m-%d %H:%M:%S"
+  rotation:
+    enabled: true
+    max_bytes: 10485760           # 10 MB
+    backup_count: 5

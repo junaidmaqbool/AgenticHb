@@ -1,0 +1,36 @@
+# ============================================================
+# prediction.yaml — hemoglobin prediction subsystem configuration
+# Consumed later by PredictionManager (Phase 6). Independent models
+# are trained per tissue class (Decision 004).
+# ============================================================
+
+prediction:
+  available_models: [efficientnet, resnet, densenet, vit, convnext]
+  default_model: efficientnet
+
+  # Optional per-tissue default routing (overridable by the routing agent).
+  tissue_models:
+    eye: vit
+    palm: efficientnet
+    tongue: convnext
+    nail: resnet
+
+  training:
+    loss: mse
+    optimizer: adamw
+    learning_rate: 0.0003
+    batch_size: 16
+    epochs: 120
+    scheduler: cosine
+    weight_decay: 0.01
+    early_stopping:
+      enabled: true
+      patience: 20
+
+  input:
+    resolution: [224, 224]
+    normalize: true
+
+  metadata_fusion:
+    enabled: false            # image-only by default; enable to fuse metadata
+    features: [Age, Gender, BMI]

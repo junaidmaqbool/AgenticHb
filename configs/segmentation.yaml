@@ -1,0 +1,24 @@
+# ============================================================
+# segmentation.yaml — segmentation subsystem configuration
+# Consumed later by SegmentationManager (Phase 5).
+# ============================================================
+
+segmentation:
+  available_models: [unet, segformer, deeplabv3plus]
+  default_model: unet
+
+  training:
+    loss: dice_bce
+    optimizer: adam
+    learning_rate: 0.0001
+    batch_size: 8
+    epochs: 100
+    scheduler: cosine
+    early_stopping:
+      enabled: true
+      patience: 15
+
+  inference:
+    threshold: 0.5
+
+  checkpoint_dir: checkpoints/segmentation

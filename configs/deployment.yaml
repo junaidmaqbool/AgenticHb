@@ -1,0 +1,18 @@
+# ============================================================
+# deployment.yaml — deployment configuration
+# Consumed later by DeploymentManager (Phase 9). Deployment loads
+# only registry-approved models; no retraining occurs.
+# ============================================================
+
+deployment:
+  target: fastapi            # desktop | fastapi | gradio | streamlit | docker | huggingface
+  host: 127.0.0.1
+  port: 8000
+
+  models:
+    load_from_registry: true
+    status_filter: [stable, production]
+
+  report:
+    generate_pdf: true
+    include_confidence: true
