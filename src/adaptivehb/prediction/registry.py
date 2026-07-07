@@ -12,6 +12,7 @@ builder, the factory falls back to the torch-free
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from typing import Any
 
@@ -53,9 +54,12 @@ def build_prediction(name: str, **kwargs: Any) -> PredictionModel:
         A :class:`PredictionModel` instance (not yet built).
     """
     key = name.lower()
+    from adaptivehb.prediction.reference import ReferencePredictionModel
+
+    if os.environ.get("ADAPTIVEHB_FORCE_REFERENCE"):
+        return ReferencePredictionModel(name=name, **kwargs)
     if key in _BUILDERS:
         return _BUILDERS[key](name=name, **kwargs)
-    from adaptivehb.prediction.reference import ReferencePredictionModel
 
     return ReferencePredictionModel(name=name, **kwargs)
 

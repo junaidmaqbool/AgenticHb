@@ -14,6 +14,7 @@ torch-free :class:`ReferenceSegmentationModel` so the framework still runs
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from typing import Any
 
@@ -64,12 +65,16 @@ def build_segmentation(name: str, **kwargs: Any) -> SegmentationModel:
     Returns:
         A :class:`SegmentationModel` instance (not yet built).
     """
+    from adaptivehb.segmentation.reference import ReferenceSegmentationModel
+
+    # Explicit override: force the torch-free reference backend (e.g. for the
+    # synthetic smoke test) regardless of whether torch builders are registered.
+    if os.environ.get("ADAPTIVEHB_FORCE_REFERENCE"):
+        return ReferenceSegmentationModel(name=name, **kwargs)
     key = name.lower()
     if key in _BUILDERS:
         return _BUILDERS[key](name=name, **kwargs)
     # Fallback: torch-free reference implementation under the requested name.
-    from adaptivehb.segmentation.reference import ReferenceSegmentationModel
-
     return ReferenceSegmentationModel(name=name, **kwargs)
 
 

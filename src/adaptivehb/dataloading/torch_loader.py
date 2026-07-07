@@ -52,22 +52,48 @@ if _TORCH_AVAILABLE:  # pragma: no cover - requires torch
         def __getitem__(self, index: int) -> tuple[Any, Any]:
             sample = self._samples[index]
             image = self._decoder.decode(sample.image_path)
-            if self._transform is not None:
-                image = self._transform(image=image)["image"]
-            image_tensor = torch.as_tensor(image).float()
-            if image_tensor.ndim == 3 and image_tensor.shape[-1] in (1, 3):
-                image_tensor = image_tensor.permute(2, 0, 1)
 
             if self._task == "segmentation":
-                if sample.mask_path:
-                    mask = self._decoder.decode(sample.mask_path)
-                    target = torch.as_tensor(mask).float()
-                else:
-                    target = torch.zeros(1)
-                return image_tensor, target
+                mask = self._decoder.decode(sample.mask_path) if sample.mask_path else None
+                # Transform image and mask together so a Resize/flip/rotate keeps
+                # them spatially aligned (the mask must match the model's output).
+                if self._transform is not None:
+                    if mask is not None:
+                        result = self._transform(image=image, mask=mask)
+                        image, mask = result["image"], result["mask"]
+                    else:
+                        image = self._transform(image=image)["image"]
+                return self._to_chw(image), self._mask_target(mask)
 
+            if self._transform is not None:
+                image = self._transform(image=image)["image"]
             label = float(sample.hb) if sample.hb is not None else 0.0
-            return image_tensor, torch.tensor(label).float()
+            return self._to_chw(image), torch.tensor(label).float()
+
+        @staticmethod
+        def _to_chw(image: Any) -> Any:
+            """Return a float CHW image tensor from an HWC array (or passthrough)."""
+            tensor = torch.as_tensor(image).float()
+            if tensor.ndim == 3 and tensor.shape[-1] in (1, 3):
+                tensor = tensor.permute(2, 0, 1)
+            return tensor
+
+        @staticmethod
+        def _mask_target(mask: Any) -> Any:
+            """Build a single-channel [1, H, W] binary float mask target.
+
+            Collapses a decoded HWC mask to one channel, scales 0-255 to 0-1, and
+            binarizes, so the target matches a ``[N, 1, H, W]`` segmentation logit.
+            """
+            if mask is None:
+                return torch.zeros(1)
+            tensor = torch.as_tensor(mask).float()
+            if tensor.ndim == 3:  # H, W, C -> take a single channel
+                tensor = tensor[..., 0]
+            if float(tensor.max()) > 1.0:
+                tensor = tensor / 255.0
+            tensor = (tensor >= 0.5).float()
+            return tensor.unsqueeze(0)  # [1, H, W]
 
 
 def build_dataloader(

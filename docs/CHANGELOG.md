@@ -702,6 +702,49 @@ Notes
 
 ---
 
+## v1.14.2
+
+Date
+
+2026-07-07
+
+Status
+
+Fix — smoke notebook forces reference models; segmentation mask target shape
+
+Fixed
+
+- On Kaggle/Colab (PyTorch present), the synthetic smoke experiment triggered real
+  torch training and failed with a shape mismatch
+  ("Target size [N,32,32,3] must be the same as input size [N,1,224,224]"): the
+  dataloader resized the image via Albumentations but never passed the mask through
+  the transform, and left the mask as a 3-channel HWC array.
+- `SampleDataset` (torch dataloader) now transforms image and mask **together**
+  (`transform(image=, mask=)`) and builds a single-channel binary `[1, H, W]` mask
+  target that matches the segmentation logits. Fixes real segmentation training too.
+- Added an `ADAPTIVEHB_FORCE_REFERENCE` environment switch honored by the
+  segmentation/prediction factories; the synthetic smoke notebook sets it so the
+  wiring is verified on the fast, torch-free reference models regardless of whether
+  PyTorch is installed (its stated purpose). The real training notebook is
+  unaffected and uses the torch backbones.
+- Notebook "Get the code" cell now `git pull`s an existing clone and asserts the
+  code is current, so stale Colab/Kaggle clones self-update.
+
+Files Modified
+
+- `src/adaptivehb/dataloading/torch_loader.py`,
+  `src/adaptivehb/segmentation/registry.py`,
+  `src/adaptivehb/prediction/registry.py`,
+  `notebooks/smoke_synthetic.ipynb`, `notebooks/train_pipeline.ipynb`
+
+Tests
+
+- 244 passed, 4 skipped (unchanged). Smoke notebook re-executed end-to-end via
+  nbclient with no errors. The mask-target fix affects the torch path only and is
+  validated by running real training on a GPU (not exercised in the torch-free CI).
+
+---
+
 ## v1.14.1
 
 Date
