@@ -34,6 +34,11 @@ class DatasetManager(BaseManager):
         config: FrameworkConfig,
         base_dir: str | Path = ".",
         dataset_root: str | Path | None = None,
+        *,
+        images_dir: str | None = None,
+        masks_dir: str | None = None,
+        metadata_file: str | None = None,
+        metadata_optional: bool = False,
     ) -> None:
         """Initialize the dataset manager.
 
@@ -41,11 +46,20 @@ class DatasetManager(BaseManager):
             config: Validated framework configuration.
             base_dir: Root directory for resolving relative dataset paths.
             dataset_root: Explicit dataset root; overrides the config value.
+            images_dir: Override for the images subdirectory (defaults to config).
+            masks_dir: Override for the masks subdirectory (defaults to config).
+            metadata_file: Override for the metadata CSV path (defaults to config).
+            metadata_optional: When true, a missing metadata CSV is tolerated (the
+                dataset then has no labels; used for a mask-only segmentation source).
         """
         super().__init__(config, base_dir)
         self._ds_config = DatasetConfig.from_section(config.section("dataset"))
         root = dataset_root if dataset_root is not None else self._ds_config.root
         self._root: Path | None = self._resolve(root) if root else None
+        self._images_dir = images_dir or self._ds_config.images_dir
+        self._masks_dir = masks_dir or self._ds_config.masks_dir
+        self._metadata_file = metadata_file if metadata_file is not None else self._ds_config.metadata_file
+        self._metadata_optional = metadata_optional
         self._metadata: MetadataTable | None = None
         self._index: list[Sample] | None = None
         self._splits: dict[str, list[str]] | None = None
@@ -68,9 +82,14 @@ class DatasetManager(BaseManager):
     def load_metadata(self) -> MetadataTable:
         """Load (and cache) the metadata table."""
         if self._metadata is None:
-            path = self._require_root() / self._ds_config.metadata_file
-            self._metadata = MetadataTable.load(path, self._ds_config.metadata.patient_id_column)
-            self._log.info("Loaded metadata: %d patient(s).", len(self._metadata.patient_ids))
+            path = self._require_root() / self._metadata_file
+            id_column = self._ds_config.metadata.patient_id_column
+            if self._metadata_optional and not path.is_file():
+                self._metadata = MetadataTable([], [], id_column)
+                self._log.info("No metadata file (optional source); proceeding without labels.")
+            else:
+                self._metadata = MetadataTable.load(path, id_column)
+                self._log.info("Loaded metadata: %d patient(s).", len(self._metadata.patient_ids))
         return self._metadata
 
     def build_index(self) -> list[Sample]:
@@ -79,8 +98,8 @@ class DatasetManager(BaseManager):
             return self._index
         root = self._require_root()
         metadata = self.load_metadata()
-        images_root = root / self._ds_config.images_dir
-        masks_root = root / self._ds_config.masks_dir
+        images_root = root / self._images_dir
+        masks_root = root / self._masks_dir
         formats = self._ds_config.image.formats
         target = self._ds_config.metadata.target_column
 
@@ -140,8 +159,7 @@ class DatasetManager(BaseManager):
         """
         if self._pinned_split is not None:
             return self._retag(self._pinned_split)
-        metadata = self.load_metadata()
-        mapping = patient_level_split(metadata.patient_ids, self._ds_config.split)
+        mapping = patient_level_split(self._split_patient_ids(), self._ds_config.split)
         return self._retag(mapping)
 
     def apply_split(self, mapping: dict[str, list[str]]) -> dict[str, list[str]]:
@@ -166,6 +184,16 @@ class DatasetManager(BaseManager):
         sizes = {name: len(ids) for name, ids in mapping.items()}
         self._log.info("Patient-level split: %s.", sizes)
         return self._splits
+
+    def _split_patient_ids(self) -> list[str]:
+        """Patient IDs for splitting: from metadata when present, else from images."""
+        ids = self.load_metadata().patient_ids
+        if ids:
+            return ids
+        seen: dict[str, None] = {}
+        for sample in self.build_index():
+            seen.setdefault(sample.patient_id, None)
+        return list(seen)
 
     def samples(self, split: str | None = None) -> list[Sample]:
         """Return samples, optionally filtered by split name."""

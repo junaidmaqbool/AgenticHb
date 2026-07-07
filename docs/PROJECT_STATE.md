@@ -1,6 +1,6 @@
 # PROJECT_STATE.md
 
-Version: 3.4
+Version: 3.5
 Status: Living Project Status
 Last Updated: 2026-07-06
 
@@ -49,6 +49,7 @@ All Phase 0 documents complete. IMPLEMENTATION_READINESS_REPORT.md complete.
 | Paper 3 manuscript draft (methods/protocol; results templated) | 🟡 In progress |
 | Paper 2 manuscript draft (prediction benchmark; results templated) | 🟡 In progress |
 | Segmentation evaluation metrics (IoU/Dice/pixel-acc) | ✅ Complete |
+| Separate segmentation dataset (independent of Hb dataset) | ✅ Complete |
 | Real experiment run (torch backbones + real dataset) | ⬜ Not Started (user runs notebook in a torch env) |
 
 ---
@@ -188,7 +189,7 @@ Experiment orchestration highlights
   experiment directory, plus a summary (Decision 028).
 - `HbPipeline.experiment()` public facade (lazy import; no circular dependency).
 
-Tests — 244 passing (4 torch tests skipped without torch); smoke notebook executed end-to-end via nbclient
+Tests — 251 passing (4 torch tests skipped without torch); smoke notebook executed end-to-end via nbclient
 
 ---
 

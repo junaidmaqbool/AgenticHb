@@ -94,6 +94,13 @@ class DatasetConfig:
     masks_dir: str = "masks"
     metadata_file: str = "metadata/patients.csv"
     splits_dir: str = "splits"
+    # Optional SEPARATE dataset for training segmentation (images + masks). When
+    # segmentation_root is set, segmentation trains on this source instead of the
+    # main (Hb) root; the main root is used for prediction + evaluation.
+    segmentation_root: str | None = None
+    segmentation_images_dir: str = "images"
+    segmentation_masks_dir: str = "masks"
+    segmentation_metadata_file: str | None = None
     tissues: tuple[str, ...] = ("eye", "palm", "tongue", "nail")
     tissue_sides: dict[str, list[str]] = field(default_factory=dict)
     image: ImageSpec = field(default_factory=ImageSpec)
@@ -115,14 +122,21 @@ class DatasetConfig:
         """
         if "dataset" in section and isinstance(section["dataset"], Mapping):
             section = section["dataset"]
+        images_dir = str(section.get("images_dir", "images"))
+        masks_dir = str(section.get("masks_dir", "masks"))
+        seg_src = dict(section.get("segmentation_source", {}))
         return cls(
             name=_opt_str(section.get("name")),
             version=_opt_str(section.get("version")),
             root=_opt_str(section.get("root")),
-            images_dir=str(section.get("images_dir", "images")),
-            masks_dir=str(section.get("masks_dir", "masks")),
+            images_dir=images_dir,
+            masks_dir=masks_dir,
             metadata_file=str(section.get("metadata_file", "metadata/patients.csv")),
             splits_dir=str(section.get("splits_dir", "splits")),
+            segmentation_root=_opt_str(seg_src.get("root")),
+            segmentation_images_dir=str(seg_src.get("images_dir", images_dir)),
+            segmentation_masks_dir=str(seg_src.get("masks_dir", masks_dir)),
+            segmentation_metadata_file=_opt_str(seg_src.get("metadata_file")),
             tissues=tuple(str(t) for t in section.get("tissues", ["eye", "palm", "tongue", "nail"])),
             tissue_sides={
                 str(k): [str(s) for s in v]

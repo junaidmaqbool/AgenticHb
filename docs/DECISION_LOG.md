@@ -1935,6 +1935,75 @@ Accepted (provisional — override on request).
 
 ---
 
+# Decision 039
+
+Decision ID
+
+039
+
+Category
+
+Dataset / Pipeline
+
+Date
+
+2026-07-07
+
+Decision
+
+Segmentation may train on a dataset that is separate from the Hb-estimation
+dataset. An optional `dataset.segmentation_source` block (root + images_dir/
+masks_dir/metadata_file) selects a distinct segmentation dataset; when unset, the
+main dataset is reused (backwards compatible). The PipelineManager builds a second
+`DatasetManager` (`pm.segmentation_dataset`) for that source; training/validation
+split both datasets, segmentation dataloaders draw from the segmentation dataset,
+and prediction + evaluation draw from the main (Hb) dataset. The segmentation
+source is metadata-optional: a missing `patients.csv` is tolerated (it needs only
+images + masks), and patient-level splitting falls back to patient IDs derived from
+the image filenames.
+
+Reason
+
+In practice the mask-annotated segmentation set is a different (often smaller,
+possibly different-subject) collection than the labelled Hb set; forcing one shared
+root would require co-locating them and inventing Hb labels for mask-only images.
+Separating the sources matches real datasets, keeps segmentation and prediction
+independently trainable (a core project principle), and needs no change to callers
+that use a single dataset.
+
+Alternatives Considered
+
+One shared root with masks for a subset (does not fit different-subject
+segmentation data; pollutes the Hb split with unlabelled images); a fully separate
+segmentation pipeline/config file (heavier; the two share almost all machinery); a
+CLI/facade argument instead of config (kept it config-driven and reuses the second
+DatasetManager unchanged).
+
+Advantages
+
+Matches real data; segmentation and Hb trained on their own sources; metadata
+optional for the mask-only set; backwards compatible; reuses DatasetManager via a
+second instance (no duplication).
+
+Disadvantages
+
+Two splits/validations to reason about; the torch dataloader routing for the
+segmentation source is validated by logic + reference-model tests here (the real
+torch path is exercised on a GPU).
+
+Impact
+
+`DatasetConfig` (segmentation_source), `DatasetManager` (dir overrides +
+metadata-optional + split-from-index), `PipelineManager`
+(`segmentation_dataset`), `managers.pipeline_modes` (split/attach), and the
+notebook control panel (`SEG_DATASET_ROOT`).
+
+Status
+
+Accepted (provisional — override on request).
+
+---
+
 # Future Decisions
 
 New decisions should be appended sequentially.

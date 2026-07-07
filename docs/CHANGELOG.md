@@ -702,6 +702,51 @@ Notes
 
 ---
 
+## v1.15.0
+
+Date
+
+2026-07-07
+
+Status
+
+Stage B — Separate segmentation dataset (independent from the Hb dataset)
+
+Completed
+
+- Segmentation can now train on its own dataset, distinct from the Hb-estimation
+  dataset (Decision 039). Set `dataset.segmentation_source.root` (+ optional
+  images_dir/masks_dir/metadata_file); unset = reuse the main dataset.
+- `DatasetManager` gained per-instance `images_dir`/`masks_dir`/`metadata_file`
+  overrides and a `metadata_optional` mode: a mask-only segmentation set with no
+  `patients.csv` is supported, and patient-level splitting falls back to IDs parsed
+  from image filenames.
+- `PipelineManager` builds `pm.segmentation_dataset` (a second DatasetManager on the
+  segmentation root, or the main dataset when not configured); training splits both,
+  segmentation dataloaders use the segmentation dataset, prediction/evaluation use
+  the Hb dataset.
+- Notebook control panel: new `SEG_DATASET_ROOT` knob; `configs/dataset.yaml`
+  documents the optional `segmentation_source` block.
+
+Files Added
+
+- `tests/test_multi_dataset.py`
+
+Files Modified
+
+- `src/adaptivehb/dataset/config.py`, `src/adaptivehb/dataset/manager.py`,
+  `src/adaptivehb/managers/pipeline.py`, `src/adaptivehb/managers/pipeline_modes.py`,
+  `configs/dataset.yaml`, `notebooks/train_pipeline.ipynb`, docs + CURRENT_TASK
+
+Tests
+
+- 251 passed, 4 skipped. 7 new tests in `tests/test_multi_dataset.py` (config
+  parsing, metadata-optional load/split without a CSV, missing-CSV error when not
+  optional, distinct seg/hb datasets in the pipeline, fallback to one dataset, and a
+  full experiment across two separate roots).
+
+---
+
 ## v1.14.2
 
 Date

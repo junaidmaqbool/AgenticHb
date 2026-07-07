@@ -11,6 +11,14 @@ dataset:
   images_dir: images
   masks_dir: masks
   metadata_file: metadata/patients.csv
+
+  # Optional: train segmentation on a SEPARATE dataset (its own images +
+  # masks). Uncomment and set `root` when your mask-annotated set differs
+  # from the Hb dataset above. A patients.csv is optional here.
+  # segmentation_source:
+  #   root: /path/to/segmentation_dataset
+  #   images_dir: images
+  #   masks_dir: masks
   splits_dir: splits
 
   # Tissue capture is per-side; prediction models operate per class

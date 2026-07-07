@@ -212,7 +212,7 @@ notes:
 
   - Implement one milestone only; update this file after every session.
 
-  - Provisional decisions 011-038 recorded in DECISION_LOG.md; override if desired.
+  - Provisional decisions 011-039 recorded in DECISION_LOG.md; override if desired.
 
 # ============================================================
 # SESSION SUMMARY
@@ -220,13 +220,13 @@ notes:
 
 session:
 
-  last_completed: Stage B - Segmentation evaluation metrics (IoU/Dice/pixel-accuracy; unblocks Paper 1)
+  last_completed: Stage B - Separate segmentation dataset support (independent of the Hb dataset)
 
   files_created: 2
 
   files_modified: 4
 
-  tests_passed: 244
+  tests_passed: 251
 
   next_session_goal: Draft Paper 1 (segmentation) using the new metrics; fill Papers 2/3 after the run
 

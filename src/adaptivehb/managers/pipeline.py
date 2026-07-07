@@ -59,6 +59,9 @@ class PipelineManager(BaseManager):
         self.checkpoints = CheckpointManager(config, base_dir)
         self.experiments = ExperimentManager(config, base_dir)
         self.dataset = DatasetManager(config, base_dir, dataset_root=dataset_root)
+        # Optional SEPARATE segmentation dataset (its own images + masks, no labels
+        # required). Falls back to the main dataset when not configured (Decision 039).
+        self.segmentation_dataset = self._build_segmentation_dataset(config, base_dir)
         self.segmentation = SegmentationManager(config, base_dir)
         self.prediction = PredictionManager(config, base_dir)
         self.agents = AgentManager(config, base_dir)
@@ -89,6 +92,25 @@ class PipelineManager(BaseManager):
 
         return _factory
 
+    def _build_segmentation_dataset(
+        self, config: FrameworkConfig, base_dir: str | Path
+    ) -> DatasetManager:
+        """Return a distinct DatasetManager for the segmentation source, or the
+        main dataset when no separate segmentation root is configured."""
+        ds_config = self.dataset.dataset_config
+        seg_root = ds_config.segmentation_root
+        if not seg_root:
+            return self.dataset
+        return DatasetManager(
+            config,
+            base_dir,
+            dataset_root=seg_root,
+            images_dir=ds_config.segmentation_images_dir,
+            masks_dir=ds_config.segmentation_masks_dir,
+            metadata_file=ds_config.segmentation_metadata_file,
+            metadata_optional=True,
+        )
+
     def _on_initialize(self) -> None:
         set_global_seed(
             self._config.project.seed, deterministic=self._config.project.deterministic
@@ -100,6 +122,7 @@ class PipelineManager(BaseManager):
             self.checkpoints,
             self.experiments,
             self.dataset,
+            *( (self.segmentation_dataset,) if self.segmentation_dataset is not self.dataset else () ),
             self.segmentation,
             self.prediction,
             self.agents,

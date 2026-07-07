@@ -48,7 +48,12 @@ def run_training(pm: PipelineManager, *, epochs: int | None = None, resume: bool
         return report.to_dict()
 
     def _split() -> dict[str, int]:
-        return {name: len(ids) for name, ids in dataset.split().items()}
+        sizes = {name: len(ids) for name, ids in dataset.split().items()}
+        seg_dataset = pm.segmentation_dataset
+        if seg_dataset is not dataset:
+            seg_sizes = {f"seg_{name}": len(ids) for name, ids in seg_dataset.split().items()}
+            sizes.update(seg_sizes)
+        return sizes
 
     def _train_segmentation() -> dict[str, Any]:
         return _train_group(pm, _segmentation_plans(pm, epochs), resume)
@@ -289,10 +294,10 @@ def _attach_dataloaders(pm: PipelineManager, trainable: Any, plan: TrainingPlan)
         return
     from adaptivehb.dataloading import TransformSpec, build_dataloader, build_transform
 
-    dataset = pm.dataset
+    task = "segmentation" if plan.category is ModelCategory.SEGMENTATION else "prediction"
+    dataset = pm.segmentation_dataset if task == "segmentation" else pm.dataset
     if not dataset.samples("train"):
         dataset.split()
-    task = "segmentation" if plan.category is ModelCategory.SEGMENTATION else "prediction"
 
     train_samples = list(dataset.samples("train"))
     val_samples = list(dataset.samples("validation")) or list(train_samples)
