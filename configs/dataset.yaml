@@ -5,12 +5,12 @@
 # ============================================================
 
 dataset:
-  name: null                 # set per experiment; never hardcode in source
+  name: EyesDefyanemia                 # set per experiment; never hardcode in source
   version: null
-  root: null                 # dataset root directory
-  images_dir: images
-  masks_dir: masks
-  metadata_file: metadata/patients.csv
+  root: EDA                 # dataset root directory
+  images_dir: eyesdefyanemia
+  masks_dir: eyesdefyanemia
+  metadata_file: EDA/eyesdefyanemia.xlsx
 
   # Optional: train segmentation on a SEPARATE dataset (its own images +
   # masks). Uncomment and set `root` when your mask-annotated set differs
@@ -23,12 +23,13 @@ dataset:
 
   # Tissue capture is per-side; prediction models operate per class
   # (left/right pooled at the dataset layer). See Decision 013.
-  tissues: [eye, palm, tongue, nail]
+  tissues: [eye]
+  # tissues: [eye, palm, tongue, nail]
   tissue_sides:
     eye: [left, right]
-    palm: [left, right]
-    tongue: [center]
-    nail: [left, right]
+    # palm: [left, right]
+    # tongue: [center]
+    # nail: [left, right]
 
   image:
     channels: 3
@@ -36,9 +37,9 @@ dataset:
     formats: [jpg, jpeg, png, tiff, bmp]
 
   metadata:
-    patient_id_column: Patient_ID
-    target_column: Hemoglobin
-    mandatory_columns: [Patient_ID, Hemoglobin, Age, Gender]
+    patient_id_column: Number
+    target_column: Hgb
+    mandatory_columns: [Number, Hgb, Age, Gender]
     optional_columns: [Height, Weight, BMI, SES, SpO2, Ethnicity]
 
   split:
