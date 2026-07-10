@@ -5,9 +5,13 @@ module consumes the standardized :class:`Sample` structure.
 """
 
 from adaptivehb.dataset.config import (
+    SAMPLING_EXTENDED,
+    SAMPLING_MODES,
+    SAMPLING_SINGLE,
     DatasetConfig,
     ImageSpec,
     MetadataSpec,
+    SideSource,
     SplitSpec,
 )
 from adaptivehb.dataset.manager import DatasetManager
@@ -28,6 +32,10 @@ __all__ = [
     "ImageSpec",
     "MetadataSpec",
     "SplitSpec",
+    "SideSource",
+    "SAMPLING_EXTENDED",
+    "SAMPLING_SINGLE",
+    "SAMPLING_MODES",
     "MetadataTable",
     "Sample",
     "Severity",

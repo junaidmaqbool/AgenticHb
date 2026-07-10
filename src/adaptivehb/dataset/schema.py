@@ -38,6 +38,9 @@ class Sample:
         hb: Hemoglobin value for the patient, if available.
         metadata: Raw metadata row for the patient.
         split: Assigned split name (``train``/``validation``/``test``), if any.
+        side: Capture side (e.g. ``left``/``right``/``center``), if known. Sides of
+            the same tissue are pooled into one tissue class; this field preserves
+            the provenance for per-side analysis and the ``single`` sampling mode.
     """
 
     patient_id: str
@@ -47,6 +50,7 @@ class Sample:
     hb: float | None = None
     metadata: dict[str, str] = field(default_factory=dict)
     split: str | None = None
+    side: str | None = None
 
     def with_split(self, split: str) -> Sample:
         """Return a copy of this sample assigned to ``split``."""
@@ -58,6 +62,7 @@ class Sample:
             hb=self.hb,
             metadata=self.metadata,
             split=split,
+            side=self.side,
         )
 
     def to_dict(self) -> dict[str, Any]:

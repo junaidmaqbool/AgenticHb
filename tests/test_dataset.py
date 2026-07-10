@@ -149,3 +149,65 @@ def test_summary_and_export(dataset_manager: DatasetManager) -> None:
     report = dataset_manager.validate()
     path = dataset_manager.export_report(report)
     assert path.is_file()
+
+
+# --------------------------------------------------------------------------- #
+# Per-tissue sources: mix datasets and skip tissues with no path
+# --------------------------------------------------------------------------- #
+
+def test_tissue_sources_mix_datasets_and_skip_null(
+    framework_config: FrameworkConfig, tmp_path: Path
+) -> None:
+    """Each tissue may point at its own dataset; a tissue with no images
+    directory (e.g. a null path) is simply not applicable and is skipped."""
+    ds_a = tmp_path / "dataset_a"
+    ds_b = tmp_path / "dataset_b"
+    generate_synthetic_dataset(ds_a, num_patients=5, seed=1, tissues=["left_eye"])
+    generate_synthetic_dataset(ds_b, num_patients=5, seed=2, tissues=["palm"])
+
+    section = framework_config.section("dataset")["dataset"]
+    section["images_dir"] = "images"
+    section["masks_dir"] = "masks"
+    section["metadata_file"] = "metadata/patients.csv"
+    section["tissues"] = ["left_eye", "palm", "tongue"]
+    section["tissue_sources"] = {
+        "left_eye": {
+            "images": str(ds_a / "images" / "left_eye"),
+            "masks": str(ds_a / "masks" / "left_eye"),
+        },
+        "palm": {
+            "images": str(ds_b / "images" / "palm"),
+            "masks": str(ds_b / "masks" / "palm"),
+        },
+        "tongue": {"images": None},  # null path -> tissue not applicable
+    }
+
+    manager = DatasetManager(framework_config, base_dir=ds_a, dataset_root=ds_a)
+    manager.initialize()
+    index = manager.load()
+
+    tissues = {sample.tissue for sample in index}
+    assert tissues == {"left_eye", "palm"}  # tongue skipped (no images directory)
+    assert index, "expected samples from both datasets"
+    assert all(sample.mask_path for sample in index)  # masks resolved per dataset
+
+
+def test_tissue_sources_absent_uses_conventional_layout(
+    framework_config: FrameworkConfig, tmp_path: Path
+) -> None:
+    """With no tissue_sources configured, discovery falls back to the
+    conventional root/images_dir/<tissue> layout (backward compatible)."""
+    root = tmp_path / "ds"
+    generate_synthetic_dataset(root, num_patients=4, seed=1, tissues=["left_eye", "palm"])
+    section = framework_config.section("dataset")["dataset"]
+    section["images_dir"] = "images"
+    section["masks_dir"] = "masks"
+    section["metadata_file"] = "metadata/patients.csv"
+    section["tissues"] = ["left_eye", "palm"]
+    section["tissue_sources"] = {}
+
+    manager = DatasetManager(framework_config, base_dir=root, dataset_root=root)
+    manager.initialize()
+    index = manager.load()
+    assert {s.tissue for s in index} == {"left_eye", "palm"}
+    assert all(s.mask_path for s in index)

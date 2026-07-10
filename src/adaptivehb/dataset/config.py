@@ -37,12 +37,29 @@ class ImageSpec:
 
 @dataclass(frozen=True)
 class MetadataSpec:
-    """Metadata column expectations."""
+    """Metadata column expectations.
+
+    In addition to the mandatory/optional column contract, this spec names the
+    columns used to *derive* BMI algorithmically (``height_column`` /
+    ``weight_column`` -> ``bmi_column``) and the ``needed_columns`` a client
+    (e.g. the training notebook) wants carried through the pipeline. All column
+    names originate from configuration — never hardcoded in source.
+    """
 
     patient_id_column: str = "Patient_ID"
     target_column: str = "Hemoglobin"
     mandatory_columns: tuple[str, ...] = ("Patient_ID", "Hemoglobin", "Age", "Gender")
     optional_columns: tuple[str, ...] = ()
+    # Columns a client explicitly wants available downstream (patient id, target,
+    # anthropometrics, …). Informational: used by clients and reporting; the
+    # validator still enforces ``mandatory_columns`` separately.
+    needed_columns: tuple[str, ...] = ()
+    # Anthropometric columns used to compute BMI when it is absent/blank.
+    height_column: str = "Height"
+    weight_column: str = "Weight"
+    bmi_column: str = "BMI"
+    height_unit: str = "cm"  # cm | m — unit of the height column, for the BMI formula
+    compute_bmi: bool = True  # derive BMI from height/weight when missing
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> MetadataSpec:
@@ -54,6 +71,12 @@ class MetadataSpec:
                 str(c) for c in data.get("mandatory_columns", ["Patient_ID", "Hemoglobin"])
             ),
             optional_columns=tuple(str(c) for c in data.get("optional_columns", [])),
+            needed_columns=tuple(str(c) for c in data.get("needed_columns", [])),
+            height_column=str(data.get("height_column", "Height")),
+            weight_column=str(data.get("weight_column", "Weight")),
+            bmi_column=str(data.get("bmi_column", "BMI")),
+            height_unit=str(data.get("height_unit", "cm")).lower(),
+            compute_bmi=bool(data.get("compute_bmi", True)),
         )
 
 
@@ -83,6 +106,26 @@ class SplitSpec:
         return spec
 
 
+# Sentinel sampling modes for pooling the sides of a tissue against one patient.
+SAMPLING_EXTENDED = "extended"  # each image is an independent data point (agentic)
+SAMPLING_SINGLE = "single"      # one representative image per (patient, tissue)
+SAMPLING_MODES = (SAMPLING_EXTENDED, SAMPLING_SINGLE)
+
+
+@dataclass(frozen=True)
+class SideSource:
+    """One image (and optional mask) directory for a single tissue *side*.
+
+    A tissue may have several sides (e.g. ``left``/``right`` eyes), each living in
+    its own directory and possibly its own dataset. ``side`` is ``None`` for a
+    single-source tissue (e.g. tongue).
+    """
+
+    images: str
+    masks: str | None = None
+    side: str | None = None
+
+
 @dataclass(frozen=True)
 class DatasetConfig:
     """Typed view of the ``dataset`` configuration section."""
@@ -103,9 +146,28 @@ class DatasetConfig:
     segmentation_metadata_file: str | None = None
     tissues: tuple[str, ...] = ("eye", "palm", "tongue", "nail")
     tissue_sides: dict[str, list[str]] = field(default_factory=dict)
+    # Optional per-tissue image/mask directories, normalized to a list of
+    # :class:`SideSource`. A tissue entry may be either a flat mapping
+    # (``{"images": <dir>, "masks": <dir>}`` — a single unsided source) or a sided
+    # mapping (``{"sides": {"left": {...}, "right": {...}}}``). When a tissue has an
+    # entry here, those directories are scanned directly instead of the conventional
+    # ``root/images_dir/<tissue>`` layout, so each side may live in a separate
+    # dataset. A tissue with no usable images directory is simply skipped, letting
+    # experiments mix datasets that each cover a different subset of tissues.
+    tissue_sources: dict[str, tuple[SideSource, ...]] = field(default_factory=dict)
+    # How to pool the sides of a tissue against one patient's label. ``extended``
+    # (default) keeps every image as an independent data point; ``single`` keeps one
+    # representative image per (patient, tissue). ``tissue_sampling_mode`` overrides
+    # the global ``sampling_mode`` per tissue.
+    sampling_mode: str = SAMPLING_EXTENDED
+    tissue_sampling_mode: dict[str, str] = field(default_factory=dict)
     image: ImageSpec = field(default_factory=ImageSpec)
     metadata: MetadataSpec = field(default_factory=MetadataSpec)
     split: SplitSpec = field(default_factory=SplitSpec)
+
+    def sampling_mode_for(self, tissue: str) -> str:
+        """Return the sampling mode for ``tissue`` (per-tissue override or global)."""
+        return self.tissue_sampling_mode.get(tissue, self.sampling_mode)
 
     @classmethod
     def from_section(cls, section: Mapping[str, Any]) -> DatasetConfig:
@@ -142,6 +204,16 @@ class DatasetConfig:
                 str(k): [str(s) for s in v]
                 for k, v in dict(section.get("tissue_sides", {})).items()
             },
+            tissue_sources={
+                str(k): sources
+                for k, v in dict(section.get("tissue_sources", {})).items()
+                if isinstance(v, Mapping) and (sources := _parse_tissue_source(v))
+            },
+            sampling_mode=_parse_sampling_mode(section.get("sampling_mode", SAMPLING_EXTENDED)),
+            tissue_sampling_mode={
+                str(k): _parse_sampling_mode(v)
+                for k, v in dict(section.get("tissue_sampling_mode", {})).items()
+            },
             image=ImageSpec.from_dict(section.get("image", {})),
             metadata=MetadataSpec.from_dict(section.get("metadata", {})),
             split=SplitSpec.from_dict(section.get("split", {})),
@@ -156,4 +228,53 @@ def _opt_str(value: Any) -> str | None:
     return text or None
 
 
-__all__ = ["DatasetConfig", "ImageSpec", "MetadataSpec", "SplitSpec"]
+def _parse_sampling_mode(value: Any) -> str:
+    """Validate and normalize a sampling-mode token."""
+    mode = str(value).strip().lower()
+    if mode not in SAMPLING_MODES:
+        raise ConfigError(
+            f"Unknown sampling_mode {value!r}; expected one of {list(SAMPLING_MODES)}."
+        )
+    return mode
+
+
+def _parse_tissue_source(entry: Mapping[str, Any]) -> tuple[SideSource, ...]:
+    """Normalize one ``tissue_sources`` entry into a tuple of :class:`SideSource`.
+
+    Accepts either a flat ``{"images": ..., "masks": ...}`` mapping (a single
+    unsided source) or a sided ``{"sides": {"left": {...}, "right": {...}}}``
+    mapping. Sides or sources whose ``images`` is null/blank are dropped so a
+    partially-populated dataset degrades gracefully.
+    """
+    sides = entry.get("sides")
+    if isinstance(sides, Mapping):
+        out: list[SideSource] = []
+        for side_name, spec in sides.items():
+            if not isinstance(spec, Mapping):
+                continue
+            source = _side_source(spec, side=str(side_name))
+            if source is not None:
+                out.append(source)
+        return tuple(out)
+    source = _side_source(entry, side=None)
+    return (source,) if source is not None else ()
+
+
+def _side_source(spec: Mapping[str, Any], *, side: str | None) -> SideSource | None:
+    """Build a :class:`SideSource` from a mapping, or ``None`` if it has no images."""
+    images = _opt_str(spec.get("images"))
+    if images is None:
+        return None
+    return SideSource(images=images, masks=_opt_str(spec.get("masks")), side=side)
+
+
+__all__ = [
+    "DatasetConfig",
+    "ImageSpec",
+    "MetadataSpec",
+    "SplitSpec",
+    "SideSource",
+    "SAMPLING_EXTENDED",
+    "SAMPLING_SINGLE",
+    "SAMPLING_MODES",
+]

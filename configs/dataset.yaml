@@ -31,6 +31,28 @@ dataset:
     # tongue: [center]
     # nail: [left, right]
 
+  # Optional per-tissue image/mask directories. Each side may live in its own
+  # dataset. Two accepted shapes per tissue:
+  #   flat   -> {images: <dir>, masks: <dir>}            (single, unsided source)
+  #   sided  -> {sides: {left: {images, masks}, right: {images, masks}}}
+  # A side with a null/blank `images` is skipped; a tissue with no usable images
+  # is skipped entirely. Left blank here => conventional root/images_dir/<tissue>.
+  tissue_sources: {}
+  # tissue_sources:
+  #   eye:
+  #     sides:
+  #       left:  {images: /data/eyes/left,  masks: /data/eyes/left_masks}
+  #       right: {images: /data/eyes/right, masks: /data/eyes/right_masks}
+  #   tongue: {images: /data/tongue}
+
+  # How to pool the sides of a tissue against a patient's single Hb label:
+  #   extended -> every image is an independent data point (more samples; agentic)
+  #   single   -> one representative image per (patient, tissue)
+  sampling_mode: extended
+  tissue_sampling_mode: {}
+  # tissue_sampling_mode:
+  #   tongue: single
+
   image:
     channels: 3
     resolution: [224, 224]   # never hardcode in source — read from here
@@ -41,6 +63,14 @@ dataset:
     target_column: Hgb
     mandatory_columns: [Number, Hgb, Age, Gender]
     optional_columns: [Height, Weight, BMI, SES, SpO2, Ethnicity]
+    # Columns a client wants carried through the pipeline (informational).
+    needed_columns: [Number, Hgb, Age, Gender, Height, Weight, BMI]
+    # BMI is derived algorithmically from height/weight when missing/blank.
+    height_column: Height
+    weight_column: Weight
+    bmi_column: BMI
+    height_unit: cm          # cm | m — unit of the Height column
+    compute_bmi: true
 
   split:
     strategy: patient_level  # patient_level | kfold | external

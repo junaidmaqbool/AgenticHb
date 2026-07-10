@@ -1,0 +1,2 @@
+[console_scripts]
+adaptivehb = adaptivehb.cli:main

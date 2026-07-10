@@ -17,7 +17,7 @@ from pathlib import Path
 from adaptivehb.config.loader import FrameworkConfig
 from adaptivehb.core.interfaces import BaseManager
 from adaptivehb.core.utils import ensure_dir, write_json
-from adaptivehb.dataset.config import DatasetConfig
+from adaptivehb.dataset.config import SAMPLING_SINGLE, DatasetConfig
 from adaptivehb.dataset.metadata import MetadataTable
 from adaptivehb.dataset.schema import DatasetStatistics, Sample, ValidationReport
 from adaptivehb.dataset.splitting import invert_split, patient_level_split
@@ -90,7 +90,22 @@ class DatasetManager(BaseManager):
             else:
                 self._metadata = MetadataTable.load(path, id_column)
                 self._log.info("Loaded metadata: %d patient(s).", len(self._metadata.patient_ids))
+            self._apply_derived_columns(self._metadata)
         return self._metadata
+
+    def _apply_derived_columns(self, metadata: MetadataTable) -> None:
+        """Compute configured derived columns (currently BMI) on the metadata."""
+        meta_spec = self._ds_config.metadata
+        if meta_spec.compute_bmi:
+            filled = metadata.derive_bmi(
+                height_column=meta_spec.height_column,
+                weight_column=meta_spec.weight_column,
+                bmi_column=meta_spec.bmi_column,
+                height_unit=meta_spec.height_unit,
+            )
+            if filled:
+                self._log.info("Derived %s for %d patient(s) from height/weight.",
+                               meta_spec.bmi_column, filled)
 
     def build_index(self) -> list[Sample]:
         """Scan images and masks into standardized samples (cached)."""
@@ -105,30 +120,58 @@ class DatasetManager(BaseManager):
 
         samples: list[Sample] = []
         for tissue in self._ds_config.tissues:
-            tissue_dir = images_root / tissue
-            if not tissue_dir.is_dir():
-                continue
-            for image_path in sorted(tissue_dir.iterdir()):
-                if not image_path.is_file():
-                    continue
-                if image_path.suffix.lower().lstrip(".") not in formats:
-                    continue
-                stem = image_path.stem
-                patient_id = stem.split("_")[0]
-                row = metadata.get(patient_id) or {}
-                samples.append(
-                    Sample(
-                        patient_id=patient_id,
-                        tissue=tissue,
-                        image_path=str(image_path),
-                        mask_path=self._find_mask(masks_root / tissue, stem, formats),
-                        hb=_to_float(row.get(target)),
-                        metadata=row,
+            tissue_samples: list[Sample] = []
+            for images_dir, masks_dir, side in self._tissue_sources(
+                tissue, images_root, masks_root
+            ):
+                if not images_dir.is_dir():
+                    # A source with no usable images directory is simply not
+                    # applicable (e.g. this dataset does not cover this tissue/side);
+                    # skip it silently so experiments can mix datasets covering
+                    # different tissue/side subsets.
+                    self._log.debug(
+                        "Tissue %r side %r has no images directory (%s); skipping.",
+                        tissue, side, images_dir,
                     )
-                )
+                    continue
+                for image_path in sorted(images_dir.iterdir()):
+                    if not image_path.is_file():
+                        continue
+                    if image_path.suffix.lower().lstrip(".") not in formats:
+                        continue
+                    stem = image_path.stem
+                    patient_id = stem.split("_")[0]
+                    row = metadata.get(patient_id) or {}
+                    tissue_samples.append(
+                        Sample(
+                            patient_id=patient_id,
+                            tissue=tissue,
+                            image_path=str(image_path),
+                            mask_path=self._find_mask(masks_dir, stem, formats),
+                            hb=_to_float(row.get(target)),
+                            metadata=row,
+                            side=side or _side_from_stem(stem),
+                        )
+                    )
+            samples.extend(self._apply_sampling_mode(tissue, tissue_samples))
         self._index = samples
         self._log.info("Built dataset index: %d sample(s).", len(samples))
         return samples
+
+    def _apply_sampling_mode(self, tissue: str, tissue_samples: list[Sample]) -> list[Sample]:
+        """Pool a tissue's samples according to its sampling mode.
+
+        ``extended`` keeps every image as an independent data point; ``single``
+        keeps one representative image per patient (deterministically the first by
+        image path), which correlates each patient to a single image of the tissue.
+        """
+        mode = self._ds_config.sampling_mode_for(tissue)
+        if mode == SAMPLING_SINGLE:
+            chosen: dict[str, Sample] = {}
+            for sample in sorted(tissue_samples, key=lambda s: s.image_path):
+                chosen.setdefault(sample.patient_id, sample)
+            return list(chosen.values())
+        return tissue_samples
 
     def load(self) -> list[Sample]:
         """Load metadata and build the sample index."""
@@ -231,6 +274,37 @@ class DatasetManager(BaseManager):
         candidate = Path(path)
         return candidate if candidate.is_absolute() else self._base_dir / candidate
 
+    def _tissue_sources(
+        self, tissue: str, images_root: Path, masks_root: Path
+    ) -> list[tuple[Path, Path, str | None]]:
+        """Resolve the image/mask directories (and side) for a single tissue.
+
+        When ``dataset.tissue_sources`` defines explicit sources for the tissue —
+        either a single unsided source or several sided ones — each is used
+        directly, allowing every side to originate from a different dataset. Paths
+        may be absolute or relative to ``base_dir``. Otherwise the conventional
+        ``root/images_dir/<tissue>`` (and matching masks) layout is used (side
+        inferred from filenames).
+
+        Args:
+            tissue: The tissue name being resolved.
+            images_root: The default ``root/images_dir`` directory.
+            masks_root: The default ``root/masks_dir`` directory.
+
+        Returns:
+            A list of ``(images_dir, masks_dir, side)`` resolved tuples.
+        """
+        sources = self._ds_config.tissue_sources.get(tissue, ())
+        if not sources:
+            return [(images_root / tissue, masks_root / tissue, None)]
+        resolved: list[tuple[Path, Path, str | None]] = []
+        for source in sources:
+            image_dir = self._resolve(source.images)
+            # Explicit masks dir if given; otherwise look for masks beside images.
+            mask_dir = self._resolve(source.masks) if source.masks else image_dir
+            resolved.append((image_dir, mask_dir, source.side))
+        return resolved
+
     def _require_root(self) -> Path:
         if self._root is None:
             raise DatasetError(
@@ -256,6 +330,21 @@ def _to_float(value: str | None) -> float | None:
         return float(value) if value not in (None, "") else None
     except (TypeError, ValueError):
         return None
+
+
+# Recognized side tokens for inferring a sample's side from its filename stem
+# (filenames follow ``<patient>_<tissue>_<side>``; see the synthetic generator).
+_SIDE_TOKENS = frozenset({"left", "right", "center", "centre", "l", "r"})
+
+
+def _side_from_stem(stem: str) -> str | None:
+    """Infer a capture side from a ``patient_tissue_side`` filename stem."""
+    parts = stem.split("_")
+    if len(parts) >= 3:
+        token = parts[-1].lower()
+        if token in _SIDE_TOKENS:
+            return token
+    return None
 
 
 __all__ = ["DatasetManager"]
