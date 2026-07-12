@@ -161,8 +161,10 @@ class ExperimentRunner:
         for sample in test_samples:
             if sample.hb is None:
                 continue
-            record = patients.setdefault(sample.patient_id, {"hb": sample.hb, "tissues": set()})
-            record["tissues"].add(sample.tissue)
+            record = patients.setdefault(
+                sample.patient_id, {"hb": sample.hb, "tissue_samples": {}}
+            )
+            record["tissue_samples"].setdefault(sample.tissue, []).append(sample)
         if not patients:
             return [], [], [], []
 
@@ -180,11 +182,7 @@ class ExperimentRunner:
         rows: list[dict[str, Any]] = []
         for patient_id, info in patients.items():
             y_true.append(info["hb"])
-            tissue_preds = {
-                tissue: float(tissue_models[tissue].predict(None))
-                for tissue in info["tissues"]
-                if tissue in tissue_models
-            }
+            tissue_preds = self._predict_tissues(tissue_models, info["tissue_samples"])
             # Static baseline: unweighted mean over all available tissues (no agents).
             baseline_hb = round(sum(tissue_preds.values()) / len(tissue_preds), 4) if tissue_preds else 0.0
             baseline.append(baseline_hb)
@@ -209,6 +207,36 @@ class ExperimentRunner:
                 "baseline_hb": baseline_hb, "adaptive_hb": adaptive_hb,
             })
         return y_true, baseline, adaptive, rows
+
+    def _predict_tissues(
+        self,
+        tissue_models: dict[str, Any],
+        tissue_samples: dict[str, list[Any]],
+    ) -> dict[str, float]:
+        """Estimate Hb per tissue for one patient from that tissue's samples.
+
+        Each tissue's estimate is the mean prediction over the patient's images
+        for that tissue (real images are decoded and fed for learned backbones;
+        image-independent reference models return their constant estimate). A
+        tissue whose inference fails (e.g. a missing/corrupt image) is logged and
+        skipped rather than aborting the whole experiment, so one bad sample
+        never wastes a long run.
+        """
+        predictions: dict[str, float] = {}
+        for tissue, samples in tissue_samples.items():
+            model = tissue_models.get(tissue)
+            if model is None:
+                continue
+            try:
+                values = self._pm.prediction.predict_samples(model, samples)
+            except Exception as error:  # noqa: BLE001 - degrade gracefully, keep the run alive
+                self._pm.logger.warning(
+                    "Skipping tissue %r during evaluation: %s", tissue, error
+                )
+                continue
+            if values:
+                predictions[tissue] = sum(values) / len(values)
+        return predictions
 
     def _write_reports(self, experiment: Any, baseline: Any, adaptive: Any,
                        comparison: dict[str, Any], rows: list[dict[str, Any]]) -> None:

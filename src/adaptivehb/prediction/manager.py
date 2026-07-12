@@ -8,6 +8,7 @@ the epoch loop and the RegistryManager records results (Decision 012 roster).
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -111,6 +112,75 @@ class PredictionManager(BaseManager):
         model = self.build(architecture=architecture, tissue=tissue)
         load_weights_into(model, checkpoints, name, prefer=prefer, logger=self._log)
         return model
+
+    def predict_samples(
+        self,
+        model: PredictionModel,
+        samples: Sequence[Any],
+        *,
+        batch_size: int | None = None,
+    ) -> list[float]:
+        """Run ``model`` over ``samples`` and return one Hb estimate per sample.
+
+        This is the single, reusable inference path shared by the experiment and
+        evaluation loops. It adapts to the model's capability:
+
+        * Torch-free models that ignore the image (``consumes_images`` is False,
+          e.g. :class:`~adaptivehb.prediction.reference.ReferencePredictionModel`)
+          are called once and their constant estimate is broadcast — no image
+          decoding is attempted, keeping the framework runnable without a vision
+          stack.
+        * Learned backbones (``consumes_images`` is True) receive real decoded,
+          transformed image tensors, built through the existing dataloading
+          bridge (resolution/normalization come from the ``dataset`` config, so
+          nothing is hardcoded).
+
+        Args:
+            model: A built prediction model.
+            samples: Dataset samples to score (must expose ``image_path``).
+            batch_size: Optional inference batch size; defaults to the configured
+                prediction training batch size.
+
+        Returns:
+            One float estimate per input sample, in order (empty for no samples).
+        """
+        items = list(samples)
+        if not items:
+            return []
+
+        if not getattr(model, "consumes_images", False):
+            # Image-independent model: a single call is representative of all.
+            estimate = float(model.predict(None))
+            return [estimate] * len(items)
+
+        from adaptivehb.dataloading import (
+            TransformSpec,
+            build_dataloader,
+            build_transform,
+        )
+
+        spec = TransformSpec.from_section(self._config.section("dataset"))
+        effective_batch = int(batch_size or self._training_batch_size())
+        loader = build_dataloader(
+            items,
+            batch_size=effective_batch,
+            task="prediction",
+            shuffle=False,  # preserve order so predictions map back to samples
+            transform=build_transform(spec, training=False),
+        )
+
+        predictions: list[float] = []
+        for images, _ in loader:
+            if hasattr(model, "predict_batch"):
+                predictions.extend(float(v) for v in model.predict_batch(images))
+            else:  # pragma: no cover - defensive: models without batch support
+                predictions.extend(float(model.predict(image)) for image in images)
+        return predictions
+
+    def _training_batch_size(self) -> int:
+        """Read the configured prediction (training) batch size."""
+        training = self._config.section("prediction")["prediction"].get("training", {})
+        return int(training.get("batch_size", 8))
 
 
 __all__ = ["PredictionManager"]

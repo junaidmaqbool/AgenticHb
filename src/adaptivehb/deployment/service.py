@@ -98,7 +98,9 @@ class HbInferenceService:
             features.setdefault("quality", 0.8)
             features.setdefault("roi_iou", 0.75)
             if "pred_hb" not in features and tissue in self._models:
-                features["pred_hb"] = float(self._models[tissue].predict(None))
+                pred_hb = self._predict_tissue(tissue, features)
+                if pred_hb is not None:
+                    features["pred_hb"] = pred_hb
             features.setdefault("pred_confidence", 0.8)
 
         pred_config = self._prediction.prediction_config
@@ -116,6 +118,34 @@ class HbInferenceService:
         return ClinicalReport.from_workflow(
             patient_id, result, include_confidence=self._dep_config.include_confidence
         )
+
+    def _predict_tissue(self, tissue: str, features: dict[str, Any]) -> float | None:
+        """Best-effort per-tissue Hb estimate when the caller did not supply one.
+
+        Image-independent models return their estimate directly. A learned
+        backbone needs a decoded image: if the request carries an ``image_path``
+        it is decoded and scored, otherwise this returns ``None`` and the agent
+        workflow proceeds without a model-provided ``pred_hb`` (rather than
+        crashing on a missing image).
+        """
+        model = self._models[tissue]
+        if not getattr(model, "consumes_images", False):
+            return float(model.predict(None))
+
+        image_path = features.get("image_path")
+        if not image_path:
+            self._log.warning(
+                "No image_path for tissue %r; skipping model prediction at inference.", tissue
+            )
+            return None
+        try:
+            from adaptivehb.dataloading import ImageDecoder
+
+            image = ImageDecoder().decode(image_path)
+            return float(model.predict(image))
+        except Exception as error:  # noqa: BLE001 - degrade gracefully at serve time
+            self._log.warning("Prediction failed for tissue %r: %s", tissue, error)
+            return None
 
 
 __all__ = ["HbInferenceService"]

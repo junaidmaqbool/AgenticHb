@@ -23,6 +23,13 @@ from adaptivehb.core.utils import ensure_dir
 class PredictionModel(ABC):
     """Abstract, interchangeable hemoglobin regression model."""
 
+    #: Whether :meth:`predict` requires a real decoded image tensor. Torch-free
+    #: reference/statistical models that ignore the image leave this ``False``;
+    #: learned backbones (e.g. the torch models) set it ``True`` so callers know
+    #: to feed decoded images instead of ``None`` (see
+    #: :meth:`adaptivehb.prediction.manager.PredictionManager.predict_samples`).
+    consumes_images: bool = False
+
     def __init__(
         self,
         name: str,

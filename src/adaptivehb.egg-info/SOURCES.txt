@@ -41,6 +41,7 @@ src/adaptivehb/dataloading/decoding.py
 src/adaptivehb/dataloading/torch_loader.py
 src/adaptivehb/dataloading/transforms.py
 src/adaptivehb/dataset/__init__.py
+src/adaptivehb/dataset/bmi.py
 src/adaptivehb/dataset/config.py
 src/adaptivehb/dataset/manager.py
 src/adaptivehb/dataset/metadata.py
@@ -101,6 +102,7 @@ tests/test_core.py
 tests/test_crossval.py
 tests/test_dataloading.py
 tests/test_dataset.py
+tests/test_dataset_sources.py
 tests/test_dataset_split.py
 tests/test_deployment.py
 tests/test_evaluation.py

@@ -41,6 +41,9 @@ if _TORCH_AVAILABLE:  # pragma: no cover - requires torch
     class TorchPredictionModel(PredictionModel):
         """A torchvision backbone with a regression head, trained over a loader."""
 
+        #: Learned backbones require a real decoded image tensor at inference.
+        consumes_images = True
+
         def __init__(
             self,
             name: str,
@@ -105,13 +108,47 @@ if _TORCH_AVAILABLE:  # pragma: no cover - requires torch
             return {"val_loss": metrics["loss"], "val_mae": metrics["mae"]}
 
         def predict(self, image: Any, metadata: dict[str, Any] | None = None) -> float:
+            """Return the Hb estimate (g/dL) for a single image.
+
+            Accepts a CHW/HWC tensor or array (a batch dimension is added when
+            missing). Raises a clear :class:`~adaptivehb.exceptions.ModelError`
+            when no image is supplied, since a learned backbone cannot predict
+            without one (unlike the torch-free reference model).
+            """
+            return self.predict_batch(self._as_batch(image))[0]
+
+        def predict_batch(self, images: Any) -> list[float]:
+            """Return per-sample Hb estimates for a batch of images.
+
+            Args:
+                images: A ``[N, C, H, W]`` tensor (or an array/tensor coercible to
+                    one; a leading batch dimension is added when absent).
+
+            Returns:
+                One float estimate per sample, in input order.
+            """
             self._require_built()
+            batch = self._as_batch(images)
             self._module.eval()
             with torch.no_grad():
-                output = self._module(image.to(self._device))
+                output = self._module(batch.to(self._device))
                 if isinstance(output, dict):
                     output = next(iter(output.values()))
-                return float(output.flatten()[0])
+                return [float(value) for value in output.reshape(batch.shape[0], -1)[:, 0]]
+
+        def _as_batch(self, image: Any) -> "torch.Tensor":
+            """Coerce an image (tensor/array) into a ``[N, C, H, W]`` batch tensor."""
+            if image is None:
+                raise ModelError(
+                    f"Prediction model {self.name!r} requires a decoded image; got None. "
+                    "Feed real images (e.g. via PredictionManager.predict_samples) "
+                    "instead of relying on the torch-free reference behaviour."
+                )
+            tensor = image if isinstance(image, torch.Tensor) else torch.as_tensor(image)
+            tensor = tensor.float()
+            if tensor.ndim == 3:  # C,H,W -> add batch dimension
+                tensor = tensor.unsqueeze(0)
+            return tensor
 
         def state_dict(self) -> dict[str, Any]:
             self._require_built()

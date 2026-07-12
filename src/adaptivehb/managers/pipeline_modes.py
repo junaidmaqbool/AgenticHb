@@ -125,8 +125,8 @@ def _evaluation_pairs(pm: PipelineManager) -> tuple[list[float], list[float], li
     for sample in test_samples:
         if sample.hb is None:
             continue
-        record = by_patient.setdefault(sample.patient_id, {"hb": sample.hb, "tissues": set()})
-        record["tissues"].add(sample.tissue)
+        record = by_patient.setdefault(sample.patient_id, {"hb": sample.hb, "tissue_samples": {}})
+        record["tissue_samples"].setdefault(sample.tissue, []).append(sample)
     if not by_patient:
         return [], [], []
 
@@ -140,12 +140,41 @@ def _evaluation_pairs(pm: PipelineManager) -> tuple[list[float], list[float], li
     y_pred: list[float] = []
     rows: list[dict[str, Any]] = []
     for patient_id, info in by_patient.items():
-        preds = [float(tissue_models[t].predict(None)) for t in info["tissues"] if t in tissue_models]
-        estimate = round(sum(preds) / len(preds), 4) if preds else 0.0
+        tissue_estimates = _predict_patient_tissues(pm, tissue_models, info["tissue_samples"])
+        estimate = (
+            round(sum(tissue_estimates) / len(tissue_estimates), 4) if tissue_estimates else 0.0
+        )
         y_true.append(info["hb"])
         y_pred.append(estimate)
         rows.append({"patient_id": patient_id, "true_hb": info["hb"], "predicted_hb": estimate})
     return y_true, y_pred, rows
+
+
+def _predict_patient_tissues(
+    pm: PipelineManager,
+    tissue_models: dict[str, Any],
+    tissue_samples: dict[str, list[Any]],
+) -> list[float]:
+    """Mean Hb estimate per available tissue for one patient (feeds real images).
+
+    Learned backbones receive decoded test images via
+    :meth:`PredictionManager.predict_samples`; image-independent reference models
+    return their constant estimate. Tissues whose inference fails are logged and
+    skipped so a single bad sample cannot abort evaluation.
+    """
+    estimates: list[float] = []
+    for tissue, samples in tissue_samples.items():
+        model = tissue_models.get(tissue)
+        if model is None:
+            continue
+        try:
+            values = pm.prediction.predict_samples(model, samples)
+        except Exception as error:  # noqa: BLE001 - degrade gracefully
+            pm.logger.warning("Skipping tissue %r during evaluation: %s", tissue, error)
+            continue
+        if values:
+            estimates.append(sum(values) / len(values))
+    return estimates
 
 
 def run_inference(pm: PipelineManager, *, limit: int = 5) -> dict[str, Any]:
