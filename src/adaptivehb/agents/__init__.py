@@ -18,6 +18,7 @@ from adaptivehb.agents.decision import (
 )
 from adaptivehb.agents.manager import AgentManager
 from adaptivehb.agents.perception import QualityAssessmentAgent, ROIVerificationAgent
+from adaptivehb.agents.preprocessing import PreprocessingAgent
 from adaptivehb.agents.schema import AgentDecision, WorkflowResult
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "AGENT_ORDER",
     "WorkflowController",
     "AgentManager",
+    "PreprocessingAgent",
     "QualityAssessmentAgent",
     "ROIVerificationAgent",
     "SegmentationSelectionAgent",

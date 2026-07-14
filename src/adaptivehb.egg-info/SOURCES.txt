@@ -26,6 +26,7 @@ src/adaptivehb/agents/controller.py
 src/adaptivehb/agents/decision.py
 src/adaptivehb/agents/manager.py
 src/adaptivehb/agents/perception.py
+src/adaptivehb/agents/preprocessing.py
 src/adaptivehb/agents/schema.py
 src/adaptivehb/config/__init__.py
 src/adaptivehb/config/base.py
@@ -38,6 +39,7 @@ src/adaptivehb/core/utils.py
 src/adaptivehb/dataloading/__init__.py
 src/adaptivehb/dataloading/batch.py
 src/adaptivehb/dataloading/decoding.py
+src/adaptivehb/dataloading/preprocessing.py
 src/adaptivehb/dataloading/torch_loader.py
 src/adaptivehb/dataloading/transforms.py
 src/adaptivehb/dataset/__init__.py

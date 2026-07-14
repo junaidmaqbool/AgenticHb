@@ -14,6 +14,13 @@ from adaptivehb.dataloading.batch import (
     tissue_batches,
 )
 from adaptivehb.dataloading.decoding import ImageDecoder, decode_available
+from adaptivehb.dataloading.preprocessing import (
+    BalancedSamplingSpec,
+    HbFilterSpec,
+    PreprocessingSpec,
+    balanced_sample_weights,
+    filter_hb_range,
+)
 from adaptivehb.dataloading.torch_loader import build_dataloader, torch_available
 from adaptivehb.dataloading.transforms import (
     TransformSpec,
@@ -28,6 +35,11 @@ __all__ = [
     "batches_for_split",
     "ImageDecoder",
     "decode_available",
+    "PreprocessingSpec",
+    "HbFilterSpec",
+    "BalancedSamplingSpec",
+    "filter_hb_range",
+    "balanced_sample_weights",
     "TransformSpec",
     "build_transform",
     "transform_available",

@@ -37,6 +37,7 @@ class PredictionConfig:
     epochs: int = 120
     scheduler: str = "cosine"
     weight_decay: float = 0.01
+    pretrained: bool = True
     early_stopping: EarlyStoppingSpec = field(default_factory=EarlyStoppingSpec)
     input_resolution: tuple[int, int] = (224, 224)
     normalize: bool = True
@@ -71,6 +72,7 @@ class PredictionConfig:
             epochs=int(training.get("epochs", 120)),
             scheduler=str(training.get("scheduler", "cosine")),
             weight_decay=float(training.get("weight_decay", 0.01)),
+            pretrained=bool(training.get("pretrained", True)),
             early_stopping=EarlyStoppingSpec.from_dict(training.get("early_stopping", {})),
             input_resolution=(int(resolution[0]), int(resolution[1])),
             normalize=bool(input_spec.get("normalize", True)),

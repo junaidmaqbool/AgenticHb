@@ -105,6 +105,7 @@ def build_dataloader(
     decoder: ImageDecoder | None = None,
     transform: Any = None,
     num_workers: int = 0,
+    sample_weights: Sequence[float] | None = None,
 ) -> Any:
     """Build a ``torch`` DataLoader over samples.
 
@@ -112,23 +113,55 @@ def build_dataloader(
         samples: Samples to load.
         batch_size: Items per batch.
         task: ``"prediction"`` (target = Hb) or ``"segmentation"`` (target = mask).
-        shuffle: Shuffle each epoch (typically true for training).
+        shuffle: Shuffle each epoch (typically true for training). Ignored when
+            ``sample_weights`` is given (a weighted sampler already randomizes).
         decoder: Optional image decoder (defaults to a fresh one).
         transform: Optional transform applied to each decoded image.
         num_workers: DataLoader worker processes.
+        sample_weights: Optional per-sample draw weights. When provided, a
+            :class:`~torch.utils.data.WeightedRandomSampler` is used so that
+            under-represented Hb bins are oversampled each epoch (train split
+            only). Must have one weight per sample.
 
     Returns:
         A ``torch.utils.data.DataLoader``.
 
     Raises:
-        DatasetError: If PyTorch is not installed.
+        DatasetError: If PyTorch is not installed, or ``sample_weights`` length
+            does not match ``samples``.
     """
     if not _TORCH_AVAILABLE:
         raise DatasetError("PyTorch is required to build a DataLoader (install the 'ml' extra).")
-    from torch.utils.data import DataLoader  # pragma: no cover - requires torch
+    from torch.utils.data import (  # pragma: no cover - requires torch
+        DataLoader,
+        WeightedRandomSampler,
+    )
 
     dataset = SampleDataset(samples, task=task, decoder=decoder, transform=transform)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+
+    sampler = None
+    if sample_weights is not None:  # pragma: no cover - requires torch
+        weights = list(sample_weights)
+        if len(weights) != len(dataset):
+            raise DatasetError(
+                f"sample_weights length ({len(weights)}) must match samples ({len(dataset)})."
+            )
+        # Balanced oversampling with replacement: draw one epoch's worth of items
+        # according to the weights so every Hb bin contributes roughly equally.
+        sampler = WeightedRandomSampler(
+            torch.as_tensor(weights, dtype=torch.double),
+            num_samples=len(dataset),
+            replacement=True,
+        )
+        shuffle = False  # a sampler and shuffle are mutually exclusive
+
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        sampler=sampler,
+        num_workers=num_workers,
+    )
 
 
 __all__ = ["build_dataloader", "torch_available"]

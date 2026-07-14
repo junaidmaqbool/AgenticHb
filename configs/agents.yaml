@@ -6,6 +6,13 @@
 # ============================================================
 
 agents:
+  # --- Preprocessing layer ---
+  # Clinical Hb-range gating + balanced bin oversampling before training.
+  # Numeric knobs (range, bins) live in dataset.yaml -> preprocessing.
+  preprocessing:
+    enabled: true
+    policy: deterministic     # deterministic | learned
+
   # --- Perception layer ---
   quality_assessment:
     enabled: true

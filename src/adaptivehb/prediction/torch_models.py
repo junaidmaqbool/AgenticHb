@@ -63,7 +63,11 @@ if _TORCH_AVAILABLE:  # pragma: no cover - requires torch
             self._device = ops.resolve_device()
 
         def build(self) -> None:
-            self._module = self._module_factory()
+            # Transfer learning matters on small clinical datasets: random-init
+            # ImageNet backbones collapse to predicting the label mean. The
+            # ``pretrained`` flag comes from prediction.yaml (never hardcoded).
+            pretrained = bool(getattr(self._config, "pretrained", True))
+            self._module = self._module_factory(pretrained=pretrained)
             self._built = True
 
         def attach_data(self, train_loader: Any, val_loader: Any) -> None:
@@ -160,40 +164,57 @@ if _TORCH_AVAILABLE:  # pragma: no cover - requires torch
             self._module.load_state_dict(state["module"])
 
     def _regression_head(in_features: int) -> "nn.Module":
-        return nn.Linear(in_features, 1)
+        """A small 2-layer GELU MLP regression head.
 
-    def _efficientnet() -> "nn.Module":
-        from torchvision.models import efficientnet_b0
+        A single ``Linear`` initialised near zero outputs ~0 early in training and,
+        without pretrained features, never recovers (the source of the observed
+        MAE == range collapse). A shallow MLP with dropout gives the head capacity
+        to map pooled features onto the Hb scale.
+        """
+        hidden = max(in_features // 4, 32)
+        return nn.Sequential(
+            nn.Linear(in_features, hidden),
+            nn.GELU(),
+            nn.Dropout(0.2),
+            nn.Linear(hidden, 1),
+        )
 
-        model = efficientnet_b0(weights=None)
+    def _weights(pretrained: bool, enum: Any) -> Any:
+        """Return the torchvision ``DEFAULT`` weights when pretrained, else ``None``."""
+        return enum.DEFAULT if pretrained else None
+
+    def _efficientnet(pretrained: bool = True) -> "nn.Module":
+        from torchvision.models import EfficientNet_B0_Weights, efficientnet_b0
+
+        model = efficientnet_b0(weights=_weights(pretrained, EfficientNet_B0_Weights))
         model.classifier[1] = _regression_head(model.classifier[1].in_features)
         return model
 
-    def _resnet() -> "nn.Module":
-        from torchvision.models import resnet50
+    def _resnet(pretrained: bool = True) -> "nn.Module":
+        from torchvision.models import ResNet50_Weights, resnet50
 
-        model = resnet50(weights=None)
+        model = resnet50(weights=_weights(pretrained, ResNet50_Weights))
         model.fc = _regression_head(model.fc.in_features)
         return model
 
-    def _densenet() -> "nn.Module":
-        from torchvision.models import densenet121
+    def _densenet(pretrained: bool = True) -> "nn.Module":
+        from torchvision.models import DenseNet121_Weights, densenet121
 
-        model = densenet121(weights=None)
+        model = densenet121(weights=_weights(pretrained, DenseNet121_Weights))
         model.classifier = _regression_head(model.classifier.in_features)
         return model
 
-    def _vit() -> "nn.Module":
-        from torchvision.models import vit_b_16
+    def _vit(pretrained: bool = True) -> "nn.Module":
+        from torchvision.models import ViT_B_16_Weights, vit_b_16
 
-        model = vit_b_16(weights=None)
+        model = vit_b_16(weights=_weights(pretrained, ViT_B_16_Weights))
         model.heads.head = _regression_head(model.heads.head.in_features)
         return model
 
-    def _convnext() -> "nn.Module":
-        from torchvision.models import convnext_tiny
+    def _convnext(pretrained: bool = True) -> "nn.Module":
+        from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 
-        model = convnext_tiny(weights=None)
+        model = convnext_tiny(weights=_weights(pretrained, ConvNeXt_Tiny_Weights))
         model.classifier[2] = _regression_head(model.classifier[2].in_features)
         return model
 

@@ -335,17 +335,47 @@ def _attach_dataloaders(pm: PipelineManager, trainable: Any, plan: TrainingPlan)
         train_samples = [s for s in train_samples if s.tissue == tissue]
         val_samples = [s for s in val_samples if s.tissue == tissue]
 
+    # Agentic preprocessing (prediction only): clinical Hb-range gating +
+    # balanced bin oversampling. Segmentation targets are masks, not Hb, so it
+    # does not apply there. The agent is enable-able via agents.yaml and its
+    # numeric knobs come from dataset.preprocessing (Decision 005).
+    sample_weights = None
+    if task == "prediction":
+        agent = _build_preprocessing_agent(pm)
+        if agent is not None:
+            train_samples = agent.filter_samples(train_samples)
+            val_samples = agent.filter_samples(val_samples) or train_samples
+            sample_weights = agent.sample_weights(train_samples)
+
     spec = TransformSpec.from_section(pm.config.section("dataset"))
     batch_size = _training_batch_size(pm, task)
     train_loader = build_dataloader(
         train_samples, batch_size=batch_size, task=task, shuffle=True,
         transform=build_transform(spec, training=True),
+        sample_weights=sample_weights,
     )
     val_loader = build_dataloader(
         val_samples, batch_size=batch_size, task=task, shuffle=False,
         transform=build_transform(spec, training=False),
     )
     trainable.attach_data(train_loader, val_loader)
+
+
+def _build_preprocessing_agent(pm: PipelineManager) -> Any:
+    """Construct the PreprocessingAgent from dataset + agents config, or ``None``.
+
+    Returns ``None`` when the agent is disabled in ``agents.yaml`` so the training
+    path is unchanged for users who opt out.
+    """
+    from adaptivehb.agents.preprocessing import PreprocessingAgent
+    from adaptivehb.dataloading import PreprocessingSpec
+
+    agents_cfg = pm.config.section("agents").get("agents", {})
+    agent_cfg = dict(agents_cfg.get("preprocessing", {}))
+    if not bool(agent_cfg.get("enabled", True)):
+        return None
+    spec = PreprocessingSpec.from_section(pm.config.section("dataset"))
+    return PreprocessingAgent("preprocessing", config=agent_cfg, spec=spec)
 
 
 def _training_batch_size(pm: PipelineManager, task: str) -> int:

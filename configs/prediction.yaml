@@ -16,16 +16,19 @@ prediction:
     nail: resnet
 
   training:
-    loss: mse
+    # Transfer learning: start from ImageNet weights. Random init collapses to
+    # predicting the label mean on small clinical datasets.
+    pretrained: true
+    loss: smoothl1          # robust to Hb-label outliers vs. plain mse
     optimizer: adamw
-    learning_rate: 0.0003
+    learning_rate: 0.0001   # fine-tuning a pretrained backbone; lower than scratch
     batch_size: 16
-    epochs: 120
+    epochs: 40              # pretrained + balanced sampling converge fast
     scheduler: cosine
     weight_decay: 0.01
     early_stopping:
       enabled: true
-      patience: 20
+      patience: 10
 
   input:
     resolution: [224, 224]
