@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "categories": {
+    "segmentation": {
+      "seg_unet": [
+        {
+          "name": "seg_unet",
+          "category": "segmentation",
+          "task": "segmentation",
+          "architecture": "unet",
+          "version": 1,
+          "unique_id": "SEG_SEG_UNET_V001",
+          "author": "Junaid",
+          "created_at": "2026-07-17T12:38:18+00:00",
+          "dataset_version": null,
+          "config_version": null,
+          "framework_version": "0.2.0",
+          "checkpoint_path": "/sessions/gallant-dazzling-johnson/mnt/AgenticHb/runs/checkpoints/seg_unet",
+          "input_resolution": null,
+          "status": "experimental",
+          "metrics": {
+            "val_loss": 0.5
+          },
+          "inference_ms": null,
+          "model_size_mb": null,
+          "hardware": null,
+          "seed": 42,
+          "training_time_s": null,
+          "notes": null
+        }
+      ],
+      "seg_segformer": [
+        {
+          "name": "seg_segformer",
+          "category": "segmentation",
+          "task": "segmentation",
+          "architecture": "segformer",
+          "version": 1,
+          "unique_id": "SEG_SEG_SEGFORMER_V001",
+          "author": "Junaid",
+          "created_at": "2026-07-17T12:38:18+00:00",
+          "dataset_version": null,
+          "config_version": null,
+          "framework_version": "0.2.0",
+          "checkpoint_path": "/sessions/gallant-dazzling-johnson/mnt/AgenticHb/runs/checkpoints/seg_segformer",
+          "input_resolution": null,
+          "status": "experimental",
+          "metrics": {
+            "val_loss": 0.5
+          },
+          "inference_ms": null,
+          "model_size_mb": null,
+          "hardware": null,
+          "seed": 42,
+          "training_time_s": null,
+          "notes": null
+        }
+      ],
+      "seg_deeplabv3plus": [
+        {
+          "name": "seg_deeplabv3plus",
+          "category": "segmentation",
+          "task": "segmentation",
+          "architecture": "deeplabv3plus",
+          "version": 1,
+          "unique_id": "SEG_SEG_DEEPLABV3PLUS_V001",
+          "author": "Junaid",
+          "created_at": "2026-07-17T12:38:18+00:00",
+          "dataset_version": null,
+          "config_version": null,
+          "framework_version": "0.2.0",
+          "checkpoint_path": "/sessions/gallant-dazzling-johnson/mnt/AgenticHb/runs/checkpoints/seg_deeplabv3plus",
+          "input_resolution": null,
+          "status": "experimental",
+          "metrics": {
+            "val_loss": 0.5
+          },
+          "inference_ms": null,
+          "model_size_mb": null,
+          "hardware": null,
+          "seed": 42,
+          "training_time_s": null,
+          "notes": null
+        }
+      ]
+    }
+  }
+}

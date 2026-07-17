@@ -1,0 +1,54 @@
+2026-07-17 18:07:51 | INFO     | adaptivehb.RegistryManager | Registry created at runs/registry/registry.json.
+2026-07-17 18:07:51 | INFO     | adaptivehb.StateManager | Pipeline state created at runs/pipeline_state.json.
+2026-07-17 18:07:51 | INFO     | adaptivehb.AgentManager | AgentManager initialized: ['quality_assessment', 'roi_verification', 'segmentation_selection', 'tissue_selection', 'prediction_routing', 'fusion', 'confidence'].
+2026-07-17 18:07:51 | INFO     | adaptivehb.PipelineManager | PipelineManager initialized (seed=42).
+2026-07-17 18:08:17 | INFO     | adaptivehb.RegistryManager | Registry loaded (0 model names).
+2026-07-17 18:08:17 | INFO     | adaptivehb.StateManager | Pipeline state recovered (status=idle).
+2026-07-17 18:08:17 | INFO     | adaptivehb.AgentManager | AgentManager initialized: ['quality_assessment', 'roi_verification', 'segmentation_selection', 'tissue_selection', 'prediction_routing', 'fusion', 'confidence'].
+2026-07-17 18:08:17 | INFO     | adaptivehb.PipelineManager | PipelineManager initialized (seed=42).
+2026-07-17 18:08:17 | INFO     | adaptivehb.DatasetManager | Loaded metadata: 16 patient(s).
+2026-07-17 18:08:18 | INFO     | adaptivehb.DatasetManager | Built dataset index: 80 sample(s).
+2026-07-17 18:08:18 | INFO     | adaptivehb.DatasetManager | Dataset validation: valid (0 error(s), 1 warning(s)).
+2026-07-17 18:08:18 | INFO     | adaptivehb.DatasetManager | Patient-level split: {'train': 12, 'validation': 1, 'test': 3}.
+2026-07-17 18:08:18 | INFO     | adaptivehb.SegmentationManager | Built segmentation model 'unet' (ReferenceSegmentationModel).
+2026-07-17 18:08:18 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint seg_unet (latest + best).
+2026-07-17 18:08:18 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint seg_unet (latest + best).
+2026-07-17 18:08:18 | INFO     | adaptivehb.RegistryManager | Registered SEG_SEG_UNET_V001 (status=experimental).
+2026-07-17 18:08:18 | INFO     | adaptivehb.StateManager | Module completed: seg_unet.
+2026-07-17 18:08:18 | INFO     | adaptivehb.TrainingManager | Training 'seg_unet' done: best val_loss=0.5 @epoch 2.
+2026-07-17 18:08:18 | INFO     | adaptivehb.SegmentationManager | Built segmentation model 'segformer' (ReferenceSegmentationModel).
+2026-07-17 18:08:18 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint seg_segformer (latest + best).
+2026-07-17 18:08:18 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint seg_segformer (latest + best).
+2026-07-17 18:08:18 | INFO     | adaptivehb.RegistryManager | Registered SEG_SEG_SEGFORMER_V001 (status=experimental).
+2026-07-17 18:08:18 | INFO     | adaptivehb.StateManager | Module completed: seg_segformer.
+2026-07-17 18:08:18 | INFO     | adaptivehb.TrainingManager | Training 'seg_segformer' done: best val_loss=0.5 @epoch 2.
+2026-07-17 18:08:18 | INFO     | adaptivehb.SegmentationManager | Built segmentation model 'deeplabv3plus' (ReferenceSegmentationModel).
+2026-07-17 18:08:18 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint seg_deeplabv3plus (latest + best).
+2026-07-17 18:08:18 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint seg_deeplabv3plus (latest + best).
+2026-07-17 18:08:18 | INFO     | adaptivehb.RegistryManager | Registered SEG_SEG_DEEPLABV3PLUS_V001 (status=experimental).
+2026-07-17 18:08:18 | INFO     | adaptivehb.StateManager | Module completed: seg_deeplabv3plus.
+2026-07-17 18:08:18 | INFO     | adaptivehb.TrainingManager | Training 'seg_deeplabv3plus' done: best val_loss=0.5 @epoch 2.
+2026-07-17 18:08:18 | INFO     | adaptivehb.PredictionManager | Built prediction model 'vit' (tissue=eye, ReferencePredictionModel).
+2026-07-17 18:08:18 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint hb_eye (latest + best).
+2026-07-17 18:08:19 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint hb_eye (latest + best).
+2026-07-17 18:08:19 | INFO     | adaptivehb.RegistryManager | Registered HB_HB_EYE_V001 (status=experimental).
+2026-07-17 18:08:19 | INFO     | adaptivehb.StateManager | Module completed: hb_eye.
+2026-07-17 18:08:19 | INFO     | adaptivehb.TrainingManager | Training 'hb_eye' done: best val_loss=0.5 @epoch 2.
+2026-07-17 18:08:19 | INFO     | adaptivehb.PredictionManager | Built prediction model 'efficientnet' (tissue=palm, ReferencePredictionModel).
+2026-07-17 18:08:19 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint hb_palm (latest + best).
+2026-07-17 18:08:19 | INFO     | adaptivehb.CheckpointManager | Saved checkpoint hb_palm (latest + best).
+2026-07-17 18:08:19 | INFO     | adaptivehb.RegistryManager | Registered HB_HB_PALM_V001 (status=experimental).
+2026-07-17 18:08:19 | INFO     | adaptivehb.StateManager | Module completed: hb_palm.
+2026-07-17 18:08:19 | INFO     | adaptivehb.TrainingManager | Training 'hb_palm' done: best val_loss=0.5 @epoch 2.
+2026-07-17 18:08:19 | INFO     | adaptivehb.AgentManager | Agent quality_assessment: all tissues below quality threshold; recommend reacquisition
+2026-07-17 18:08:19 | INFO     | adaptivehb.AgentManager | Agent roi_verification: 0/2 ROI(s) verified
+2026-07-17 18:08:19 | INFO     | adaptivehb.AgentManager | Agent segmentation_selection: avg_quality=0.00 → segformer
+2026-07-17 18:08:19 | INFO     | adaptivehb.AgentManager | Agent tissue_selection: selected 2/2 tissue(s)
+2026-07-17 18:08:19 | INFO     | adaptivehb.AgentManager | Agent prediction_routing: routed 2 tissue(s)
+2026-07-17 18:08:19 | INFO     | adaptivehb.AgentManager | Agent fusion: no predictions to fuse
+2026-07-17 18:08:19 | INFO     | adaptivehb.AgentManager | Agent confidence: no predictions available
+2026-07-17 18:08:19 | INFO     | adaptivehb.PredictionManager | Built prediction model 'vit' (tissue=eye, ReferencePredictionModel).
+2026-07-17 18:08:19 | INFO     | adaptivehb.PredictionManager | Loaded 'hb_eye' weights from best checkpoint (epoch=2).
+2026-07-17 18:08:19 | INFO     | adaptivehb.PredictionManager | Built prediction model 'efficientnet' (tissue=palm, ReferencePredictionModel).
+2026-07-17 18:08:19 | INFO     | adaptivehb.PredictionManager | Loaded 'hb_palm' weights from best checkpoint (epoch=2).
+2026-07-17 18:08:19 | INFO     | adaptivehb.EvaluationManager | Evaluated 'hb_prediction': MAE=2.1000, RMSE=2.2128.

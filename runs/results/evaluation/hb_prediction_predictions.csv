@@ -1,0 +1,4 @@
+patient_id,true_hb,predicted_hb
+P0001,14.2,13.0
+P0004,10.1,13.0
+P0012,15.2,13.0

@@ -1,0 +1,15 @@
+{
+  "epoch": 2,
+  "metrics": {
+    "train_loss": 0.5,
+    "train_dice": 0.6666666666666666,
+    "val_loss": 0.5,
+    "val_dice": 0.6666666666666666,
+    "epoch": 2.0
+  },
+  "monitor": "val_loss",
+  "best_metric": 0.5,
+  "best_epoch": 2,
+  "name": "seg_unet",
+  "saved_at": "2026-07-17T12:38:18+00:00"
+}

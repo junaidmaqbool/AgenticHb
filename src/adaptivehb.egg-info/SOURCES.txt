@@ -117,6 +117,7 @@ tests/test_multi_dataset.py
 tests/test_pipeline.py
 tests/test_pipeline_modes.py
 tests/test_prediction.py
+tests/test_preprocessing.py
 tests/test_provenance.py
 tests/test_registry.py
 tests/test_reporting.py
